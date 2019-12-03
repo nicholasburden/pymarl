@@ -10,7 +10,7 @@ def tile(a, dim, n_tile):
     repeat_idx[dim] = n_tile
     a = a.repeat(*(repeat_idx))
     order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
-    return th.index_select(a, dim, order_index)
+    return th.index_select(a, dim, order_index.cuda())
 
 # This multi-agent controller shares parameters between agents
 class BasicMAC:
