@@ -1,7 +1,16 @@
 from modules.agents import REGISTRY as agent_REGISTRY
 from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
+import numpy as np
 
+
+def tile(a, dim, n_tile):
+    init_dim = a.size(dim)
+    repeat_idx = [1] * a.dim()
+    repeat_idx[dim] = n_tile
+    a = a.repeat(*(repeat_idx))
+    order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
+    return th.index_select(a, dim, order_index)
 
 # This multi-agent controller shares parameters between agents
 class BasicMAC:
@@ -54,7 +63,7 @@ class BasicMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
+        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, self.args.n_actions, -1)  # bav
 
     def parameters(self):
         return self.agent.parameters()
@@ -87,8 +96,23 @@ class BasicMAC:
                 inputs.append(batch["actions_onehot"][:, t-1])
         if self.args.obs_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
-        inputs.append(batch["avail_actions"][:,t].float())
-        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+
+        if True:
+            avail_actions = th.zeros(bs, self.n_agents, self.args.n_actions, self.args.n_actions)
+            nonzero = th.nonzero(batch["avail_actions"][:,t])
+            indices = th.empty(nonzero.shape[0], nonzero.shape[1]+1)
+            for i in range(indices.shape[0]):
+                nonzero_list = nonzero.tolist()
+                indices[i] = th.tensor([nonzero_list[i][0], nonzero_list[i][1], nonzero_list[i][2], nonzero_list[i][2]])
+            for index in indices.long().tolist():
+                avail_actions[index[0]][index[1]][index[2]][index[3]] = 1
+            avail_actions = avail_actions.reshape(-1, self.args.n_actions)
+            inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+
+            inputs = tile(inputs, 0, self.args.n_actions)
+            inputs = th.cat((inputs, avail_actions), -1)
+        else:
+            inputs = th.cat([x.reshape(bs * self.n_agents, -1) for x in inputs], dim=1)
         return inputs
 
     def _get_input_shape(self, scheme):
@@ -99,3 +123,4 @@ class BasicMAC:
             input_shape += self.n_agents
 
         return input_shape
+
