@@ -110,7 +110,7 @@ class BasicMAC:
             inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
 
             inputs = tile(inputs, 0, self.args.n_actions)
-            inputs = th.cat((inputs, avail_actions), -1)
+            inputs = th.cat((inputs.cuda(), avail_actions.cuda()), -1)
         else:
             inputs = th.cat([x.reshape(bs * self.n_agents, -1) for x in inputs], dim=1)
         return inputs
