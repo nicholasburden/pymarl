@@ -65,7 +65,11 @@ class BasicMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, self.args.n_actions, -1)  # bav
+        if self.args.action_input_representation == "Input":
+            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents,
+                                                                              self.args.n_actions, -1)  # bav
+        else:
+            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)
 
     def parameters(self):
         return self.agent.parameters()
@@ -99,23 +103,9 @@ class BasicMAC:
         if self.args.obs_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        if self.args.action_input_representation == "standard":
-
-            # avail_actions = th.zeros(bs, self.n_agents, self.args.n_actions, self.args.n_actions)
-            # nonzero = th.nonzero(batch["avail_actions"][:,t])
-            # indices = th.empty(nonzero.shape[0], nonzero.shape[1]+1)
-            # for i in range(indices.shape[0]):
-            #     nonzero_list = nonzero.tolist()
-            #     indices[i] = th.tensor([nonzero_list[i][0], nonzero_list[i][1], nonzero_list[i][2], nonzero_list[i][2]])
-            # for index in indices.long().tolist():
-            #     avail_actions[index[0]][index[1]][index[2]][index[3]] = 1
-            # avail_actions = avail_actions.reshape(-1, self.args.n_actions)
-            #avail_actions = th.eye(self.args.n_actions,self.args.n_actions, device =self.args.device).expand(self.args.batch_size,self.args.n_agents,self.args.n_actions,self.args.n_actions)
-            #avail_actions = avail_actions.reshape(-1, self.args.n_actions)
+        if self.args.action_input_representation == "Input":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
-
             inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
-
             inputs = self.tile(inputs, 0, self.args.n_actions)
             inputs = th.cat((inputs.to(self.args.device), avail_actions.to(self.args.device)), -1)
         else:
