@@ -109,3 +109,5 @@ profiler/
 venv/
 *.txt
 MUJOCO_LOG.txt
+
+src/config/default.yaml

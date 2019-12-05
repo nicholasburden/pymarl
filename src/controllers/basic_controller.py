@@ -4,13 +4,7 @@ import torch as th
 import numpy as np
 
 
-def tile(a, dim, n_tile):
-    init_dim = a.size(dim)
-    repeat_idx = [1] * a.dim()
-    repeat_idx[dim] = n_tile
-    a = a.repeat(*(repeat_idx))
-    order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
-    return th.index_select(a, dim, order_index.cuda())
+
 
 # This multi-agent controller shares parameters between agents
 class BasicMAC:
@@ -24,6 +18,14 @@ class BasicMAC:
         self.action_selector = action_REGISTRY[args.action_selector](args)
 
         self.hidden_states = None
+
+    def tile(self, a, dim, n_tile):
+        init_dim = a.size(dim)
+        repeat_idx = [1] * a.dim()
+        repeat_idx[dim] = n_tile
+        a = a.repeat(*(repeat_idx))
+        order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
+        return th.index_select(a, dim, order_index.to(self.args.device))
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
@@ -97,20 +99,25 @@ class BasicMAC:
         if self.args.obs_agent_id:
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        if True:
-            avail_actions = th.zeros(bs, self.n_agents, self.args.n_actions, self.args.n_actions)
-            nonzero = th.nonzero(batch["avail_actions"][:,t])
-            indices = th.empty(nonzero.shape[0], nonzero.shape[1]+1)
-            for i in range(indices.shape[0]):
-                nonzero_list = nonzero.tolist()
-                indices[i] = th.tensor([nonzero_list[i][0], nonzero_list[i][1], nonzero_list[i][2], nonzero_list[i][2]])
-            for index in indices.long().tolist():
-                avail_actions[index[0]][index[1]][index[2]][index[3]] = 1
-            avail_actions = avail_actions.reshape(-1, self.args.n_actions)
+        if self.args.action_input_representation == "standard":
+
+            # avail_actions = th.zeros(bs, self.n_agents, self.args.n_actions, self.args.n_actions)
+            # nonzero = th.nonzero(batch["avail_actions"][:,t])
+            # indices = th.empty(nonzero.shape[0], nonzero.shape[1]+1)
+            # for i in range(indices.shape[0]):
+            #     nonzero_list = nonzero.tolist()
+            #     indices[i] = th.tensor([nonzero_list[i][0], nonzero_list[i][1], nonzero_list[i][2], nonzero_list[i][2]])
+            # for index in indices.long().tolist():
+            #     avail_actions[index[0]][index[1]][index[2]][index[3]] = 1
+            # avail_actions = avail_actions.reshape(-1, self.args.n_actions)
+            #avail_actions = th.eye(self.args.n_actions,self.args.n_actions, device =self.args.device).expand(self.args.batch_size,self.args.n_agents,self.args.n_actions,self.args.n_actions)
+            #avail_actions = avail_actions.reshape(-1, self.args.n_actions)
+            avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
+
             inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
 
-            inputs = tile(inputs, 0, self.args.n_actions)
-            inputs = th.cat((inputs.cuda(), avail_actions.cuda()), -1)
+            inputs = self.tile(inputs, 0, self.args.n_actions)
+            inputs = th.cat((inputs.to(self.args.device), avail_actions.to(self.args.device)), -1)
         else:
             inputs = th.cat([x.reshape(bs * self.n_agents, -1) for x in inputs], dim=1)
         return inputs
