@@ -103,17 +103,17 @@ class BasicMAC:
             else:
                 onehot = batch["actions_onehot"][:, t - 1]
             inputs.update([("1d", th.cat([inputs["1d"], onehot], -1) if "1d" in inputs else onehot)])
-
+        if self.args.action_input_represetation == "Grid":
+            pass
+            #TODO: generate input["actions_2d"]
         if self.args.obs_agent_id:
             obs_agent_id = th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
-            inputs1d = inputs["1d"]
-            inputs1d = inputs1d.reshape(bs*self.n_agents, -1)
-            inputs1d = self.tile(inputs1d, 0, self.args.n_actions)
-            inputs1d = th.cat((inputs1d.to(self.args.device), avail_actions.to(self.args.device)), -1)
-            return inputs1d
+            inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
+            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
+            inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
         return inputs
 

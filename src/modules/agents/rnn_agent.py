@@ -141,10 +141,10 @@ class RNNConvDDPGInputGridAgent(nn.Module):
         q = self.fc2(h)
         return q, h
 
-#Needs action_input_representation=InputFlat
+#Needs action_input_representation=InputFlat, obs_input_representation=Grid
 class MathiasAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(RNNConvDDPGInputGridAgent, self).__init__()
+        super(MathiasAgent, self).__init__()
         self.args = args
 
         # self.conv1 = EncoderResNet(Bottleneck, [3, 4, 6, 3])
@@ -167,7 +167,7 @@ class MathiasAgent(nn.Module):
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
     def forward(self, inputs, hidden_state):
-        y = F.elu(self.conv1(inputs["actions_2d"], dim=-3))
+        y = F.elu(self.conv1(inputs["2d"][0]))
         y = F.elu(self.conv2(y))
         x = F.relu(self.fc1(th.cat([inputs["1d"][0], y.view(y.shape[0], -1)],
                                    dim=1)))
