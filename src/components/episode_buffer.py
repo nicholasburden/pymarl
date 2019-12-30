@@ -1,5 +1,7 @@
 import torch as th
 import numpy as np
+from collections import OrderedDict
+from functools import reduce
 from types import SimpleNamespace as SN
 
 
@@ -63,16 +65,25 @@ class EpisodeBatch:
             if isinstance(vshape, int):
                 vshape = (vshape,)
 
-            if group:
-                assert group in groups, "Group {} must have its number of members defined in _groups_".format(group)
-                shape = (groups[group], *vshape)
+            if isinstance(vshape, OrderedDict):  # vshape has substructure
+                total_shape = (sum([reduce((lambda x, y: x * y), (v if isinstance(v, tuple) else (v,))) for v in vshape.values()]),)
+                if group:
+                    assert group in groups, "Group {} must have its number of members defined in _groups_".format(group)
+                    total_shape = (groups[group], *total_shape)
+                if episode_const:
+                    self.data.episode_data[field_key] = th.zeros((batch_size, *total_shape), dtype=dtype, device=self.device)
+                else:
+                    self.data.transition_data[field_key] = th.zeros((batch_size, max_seq_length, *total_shape), dtype=dtype, device=self.device)
             else:
-                shape = vshape
-
-            if episode_const:
-                self.data.episode_data[field_key] = th.zeros((batch_size, *shape), dtype=dtype, device=self.device)
-            else:
-                self.data.transition_data[field_key] = th.zeros((batch_size, max_seq_length, *shape), dtype=dtype, device=self.device)
+                if group:
+                    assert group in groups, "Group {} must have its number of members defined in _groups_".format(group)
+                    shape = (groups[group], *vshape)
+                else:
+                    shape = vshape
+                if episode_const:
+                    self.data.episode_data[field_key] = th.zeros((batch_size, *shape), dtype=dtype, device=self.device)
+                else:
+                    self.data.transition_data[field_key] = th.zeros((batch_size, max_seq_length, *shape), dtype=dtype, device=self.device)
 
     def extend(self, scheme, groups=None):
         self._setup_data(scheme, self.groups if groups is None else groups, self.batch_size, self.max_seq_length)
@@ -99,10 +110,41 @@ class EpisodeBatch:
             else:
                 raise KeyError("{} not found in transition or episode data".format(k))
 
+            vshape = self.scheme[k].get("vshape")
             dtype = self.scheme[k].get("dtype", th.float32)
-            v = th.tensor(v, dtype=dtype, device=self.device)
-            self._check_safe_view(v, target[k][_slices])
-            target[k][_slices] = v.view_as(target[k][_slices])
+            group = self.scheme[k].get("group")
+            group_slice = []
+            if group is not None:
+                group_slice = [slice(None, None, None)]  # add group dimension
+            if isinstance(vshape, OrderedDict):
+                if not isinstance(v[0], OrderedDict):
+                    # update underlying storage (potentially unsafe!)
+                    target[k] = v
+                else:
+                    ctr = 0
+                    for ks, vs in vshape.items():
+                        flat_shape = reduce((lambda x, y: x * y), vs)
+                        vslice = [slice(ctr, ctr+flat_shape)]  # need to update _slices
+                        if ks in vshape:
+                            # Some clunky operations to ensure downward compatibility wrt time axis
+                            if isinstance(v, list):
+                                _v = [v[0][ks]]
+                                if len(v[0][ks]) != 1 + len(vs):
+                                    # i.e. we are missing a time dimension (as usual when inserted from replay buffer)
+                                    _v = [_v]
+                            else:
+                                _v = v[ks]
+                                if len(v[ks].shape) < 1 + len(vs):
+                                    _v =_v.unsqueeze(1)
+                            _v = th.tensor(_v, dtype=dtype, device=self.device)
+                            target[k][_slices+group_slice+vslice] = _v
+                        ctr += flat_shape
+
+            else:
+                dtype = self.scheme[k].get("dtype", th.float32)
+                v = th.tensor(v, dtype=dtype, device=self.device)
+                self._check_safe_view(v, target[k][_slices])
+                target[k][_slices] = v.view_as(target[k][_slices])
 
             if k in self.preprocess:
                 new_k = self.preprocess[k][0]
@@ -121,20 +163,36 @@ class EpisodeBatch:
                 idx -= 1
 
     def __getitem__(self, item):
+
+        def _reconstruct_vshape(data, key):
+            """
+            If vshape is a dictionary, then we want the getter to reconstruct that structure properly
+            """
+            if isinstance(self.scheme[item].get("vshape"), OrderedDict):  # vshape has substructure
+                return_dict = OrderedDict()
+                ctr = 0
+                for ks, vs in self.scheme[item].get("vshape").items():
+                    flat_shape = reduce((lambda x, y: x * y), vs)
+                    return_dict[key] = data[..., ctr:ctr+flat_shape].view(*data.shape[:-1], *vs)
+                    ctr += flat_shape
+                    return return_dict
+            else:
+                return data
+
         if isinstance(item, str):
             if item in self.data.episode_data:
-                return self.data.episode_data[item]
+                return _reconstruct_vshape(self.data.episode_data[item], item)
             elif item in self.data.transition_data:
-                return self.data.transition_data[item]
+                return _reconstruct_vshape(self.data.transition_data[item], item)
             else:
                 raise ValueError
         elif isinstance(item, tuple) and all([isinstance(it, str) for it in item]):
             new_data = self._new_data_sn()
             for key in item:
                 if key in self.data.transition_data:
-                    new_data.transition_data[key] = self.data.transition_data[key]
+                    new_data.transition_data[key] = _reconstruct_vshape(self.data.transition_data[key], key)
                 elif key in self.data.episode_data:
-                    new_data.episode_data[key] = self.data.episode_data[key]
+                    new_data.episode_data[key] = _reconstruct_vshape(self.data.episode_data[key], key)
                 else:
                     raise KeyError("Unrecognised key {}".format(key))
 
@@ -203,7 +261,6 @@ class EpisodeBatch:
                                                                                      self.scheme.keys(),
                                                                                      self.groups.keys())
 
-
 class ReplayBuffer(EpisodeBatch):
     def __init__(self, scheme, groups, buffer_size, max_seq_length, preprocess=None, device="cpu"):
         super(ReplayBuffer, self).__init__(scheme, groups, buffer_size, max_seq_length, preprocess=preprocess, device=device)
@@ -246,3 +303,73 @@ class ReplayBuffer(EpisodeBatch):
                                                                         self.scheme.keys(),
                                                                         self.groups.keys())
 
+    # def _check_slice(self, slice, max_size):
+    #     if slice.step is not None:
+    #         return slice.step > 0  # pytorch doesn't support negative steps so neither do we
+    #     if slice.start is None and slice.stop is None:
+    #         return True
+    #     elif slice.start is None:
+    #         return 0 < slice.stop <= max_size
+    #     elif slice.stop is None:
+    #         return 0 <= slice.start < max_size
+    #     else:
+    #         return (0 < slice.stop <= max_size) and (0 <= slice.start < max_size)
+
+if __name__ == "__main__":
+    bs = 4
+    n_agents = 2
+    groups = {"agents": n_agents}
+
+    # "input": {"vshape": (shape), "episode_const": bool, "group": (name), "dtype": dtype}
+    scheme = {
+        "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
+        "obs": {"vshape": (3,), "group": "agents"},
+        "state": {"vshape": (3,3)},
+        "epsilon": {"vshape": (1,), "episode_const": True}
+    }
+    from transforms import OneHot
+    preprocess = {
+        "actions": ("actions_onehot", [OneHot(out_dim=5)])
+    }
+
+    ep_batch = EpisodeBatch(scheme, groups, bs, 3, preprocess=preprocess)
+
+    env_data = {
+        "actions": th.ones(n_agents, 1).long(),
+        "obs": th.ones(2, 3),
+        "state": th.eye(3)
+    }
+    batch_data = {
+        "actions": th.ones(bs, n_agents, 1).long(),
+        "obs": th.ones(2, 3).unsqueeze(0).repeat(bs,1,1),
+        "state": th.eye(3).unsqueeze(0).repeat(bs,1,1),
+    }
+    # bs=4 x t=3 x v=3*3
+
+    ep_batch.update(env_data, 0, 0)
+
+    ep_batch.update({"epsilon": th.ones(bs)*.05})
+
+    ep_batch[:, 1].update(batch_data)
+    ep_batch.update(batch_data, ts=1)
+
+    ep_batch.update(env_data, 0, 1)
+
+    env_data = {
+        "obs": th.ones(2, 3),
+        "state": th.eye(3)*2
+    }
+    ep_batch.update(env_data, 3, 0)
+
+    b2 = ep_batch[0, 1]
+    b2.update(env_data, 0, 0)
+
+    replay_buffer = ReplayBuffer(scheme, groups, 5, 3, preprocess=preprocess)
+
+    replay_buffer.insert_episode_batch(ep_batch)
+
+    replay_buffer.insert_episode_batch(ep_batch)
+
+    sampled = replay_buffer.sample(3)
+
+    print(sampled["actions_onehot"])

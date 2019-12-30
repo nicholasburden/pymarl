@@ -2,7 +2,7 @@ from modules.agents import REGISTRY as agent_REGISTRY
 from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
 import numpy as np
-
+from collections import OrderedDict
 
 
 
@@ -65,12 +65,10 @@ class BasicMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     def init_hidden(self, batch_size):
-        if self.args.action_input_representation == "Input":
-            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents,
-                                                                              self.args.n_actions, -1)  # bav
+        if self.args.action_input_representation=="InputFlat":
+            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, self.args.n_actions, -1)  # bav
         else:
-            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)
-
+            self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
     def parameters(self):
         return self.agent.parameters()
 
@@ -93,31 +91,45 @@ class BasicMAC:
         # Assumes homogenous agents with flat observations.
         # Other MACs might want to e.g. delegate building inputs to each agent
         bs = batch.batch_size
-        inputs = []
-        inputs.append(batch["obs"][:, t])  # b1av
+        inputs = OrderedDict()
+        obs = batch["obs"][:, t]
+        if len(obs.shape[3:]) in [2, 3]:
+            inputs["2d"] = obs
+        else:
+            inputs["1d"] = obs
         if self.args.obs_last_action:
             if t == 0:
-                inputs.append(th.zeros_like(batch["actions_onehot"][:, t]))
+                onehot = th.zeros_like(batch["actions_onehot"][:, t])
             else:
-                inputs.append(batch["actions_onehot"][:, t-1])
-        if self.args.obs_agent_id:
-            inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
+                onehot = batch["actions_onehot"][:, t - 1]
+            inputs.update([("1d", th.cat([inputs["1d"], onehot], -1) if "1d" in inputs else onehot)])
 
-        if self.args.action_input_representation == "Input":
+        if self.args.obs_agent_id:
+            obs_agent_id = th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)
+            inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
+        if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
-            inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
-            inputs = self.tile(inputs, 0, self.args.n_actions)
-            inputs = th.cat((inputs.to(self.args.device), avail_actions.to(self.args.device)), -1)
-        else:
-            inputs = th.cat([x.reshape(bs * self.n_agents, -1) for x in inputs], dim=1)
+            inputs1d = inputs["1d"]
+            inputs1d = inputs1d.reshape(bs*self.n_agents, -1)
+            inputs1d = self.tile(inputs1d, 0, self.args.n_actions)
+            inputs1d = th.cat((inputs1d.to(self.args.device), avail_actions.to(self.args.device)), -1)
+            return inputs1d
+        inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
         return inputs
 
     def _get_input_shape(self, scheme):
-        input_shape = scheme["obs"]["vshape"]
+        if isinstance(scheme["obs"]["vshape"], int):
+            scheme["obs"]["vshape"] = (scheme["obs"]["vshape"],)
+        if isinstance(scheme["actions_onehot"]["vshape"], int):
+            scheme["actions_onehot"]["vshape"] = (scheme["actions_onehot"]["vshape"],)
+        input_shape = OrderedDict()
+        if len(scheme["obs"]["vshape"]) in [2,3]:  # i.e. multi-channel image data
+            input_shape["2d"] = scheme["obs"]["vshape"]
+        else:
+            input_shape["1d"] = scheme["obs"]["vshape"]
         if self.args.obs_last_action:
-            input_shape += scheme["actions_onehot"]["vshape"][0]
+            input_shape.update([("1d", (input_shape.get("1d", [0])[0] + scheme["actions_onehot"]["vshape"][0],))])
         if self.args.obs_agent_id:
-            input_shape += self.n_agents
-
+            input_shape.update([("1d", (input_shape.get("1d", [0])[0] + self.n_agents,))])
         return input_shape
 
