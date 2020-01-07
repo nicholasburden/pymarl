@@ -118,13 +118,14 @@ class BasicMAC:
         return inputs
 
     def _get_input_shape(self, scheme):
+
         if isinstance(scheme["obs"]["vshape"], int):
             scheme["obs"]["vshape"] = (scheme["obs"]["vshape"],)
         if isinstance(scheme["actions_onehot"]["vshape"], int):
             scheme["actions_onehot"]["vshape"] = (scheme["actions_onehot"]["vshape"],)
         input_shape = OrderedDict()
-        if len(scheme["obs"]["vshape"]) in [2,3]:  # i.e. multi-channel image data
-            input_shape["2d"] = scheme["obs"]["vshape"]
+        if len(scheme["obs"]["vshape_decoded"]) in [2,3]:  # i.e. multi-channel image data
+            input_shape["2d"] = scheme["obs"]["vshape_decoded"]
         else:
             input_shape["1d"] = scheme["obs"]["vshape"]
         if self.args.obs_last_action:
