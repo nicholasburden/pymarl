@@ -4,6 +4,7 @@ import pprint
 import time
 import threading
 import torch as th
+import dill
 from types import SimpleNamespace as SN
 from utils.logging import Logger
 from utils.timehelper import time_left, time_str
@@ -82,6 +83,9 @@ def run_sequential(args, logger):
     env_info = runner.get_env_info()
     args.n_agents = env_info["n_agents"]
     args.n_actions = env_info["n_actions"]
+    args.obs_decoder = dill.loads(env_info["obs_decoder"]) if env_info["obs_decoder"] is not None else None
+    args.avail_actions_encoder = dill.loads(env_info["avail_actions_encoder_grid"]) if env_info["avail_actions_encoder_grid"] is not None else None
+
     args.state_shape = env_info["state_shape"]
 
     # Default/Base scheme

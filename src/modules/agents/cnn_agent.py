@@ -13,7 +13,7 @@ class CNNOutputGridLinearBeforeAgent(nn.Module):
         super(CNNOutputGridLinearBeforeAgent, self).__init__()
         self.args = args
 
-        channels, n_dim_x, n_dim_y = input_shape["2d"][0]
+        channels, n_dim_x, n_dim_y = input_shape["2d"]
         channels += 1 #for inputs 1d to form another channel
         self.cnn_kernel_size = 3
         self.cnn_stride = 1
@@ -21,7 +21,7 @@ class CNNOutputGridLinearBeforeAgent(nn.Module):
         # Construct CNN layers
         self.cnn_layers = []
 
-        self.fc = nn.Linear(input_shape["1d"][0], input_shape["2d"][0][1] * input_shape["2d"][0][2])
+        self.fc = nn.Linear(input_shape["1d"][0], input_shape["2d"][1] * input_shape["2d"][2])
 
         for i in range(self.n_cnn_layers - 1):
 
@@ -41,11 +41,11 @@ class CNNOutputGridLinearBeforeAgent(nn.Module):
         return self.cnn_layers[0].weight.new(1, self.args.rnn_hidden_dim).zero_()
 
     def forward(self, inputs, hidden_state):
-        x = inputs['2d'][0]
-        input1d_grid = F.relu(self.fc(inputs["1d"][0])).view(-1, 1, 5, 5)
-        x = F.cat((x, input1d_grid), 1)
+        x = inputs['2d']
+        input1d_grid = F.relu(self.fc(inputs["1d"])).view(-1, 1, inputs["2d"].shape[2], inputs["2d"].shape[3])
+        x = th.cat((x, input1d_grid), 1)
         # Apply CNN layers
-        for i in range(self.cnn_layers.size() - 1):
+        for i in range(len(self.cnn_layers) - 1):
             x = F.relu(self.cnn_layers[i](x))
         x = self.cnn_layers[-1](x)
         actions = inputs['actions_2d'].bool()
@@ -64,7 +64,7 @@ class CNNOutputGridLinearAfterAgent(nn.Module):
         self.n_cnn_layers = 3
         # Construct CNN layers
         self.cnn_layers = []
-        in_features = 1 + input_shape["1d"][0] #q value and id
+        in_features = 1 + input_shape["1d"] #q value and id
 
         self.fc = nn.Linear(in_features, 1)
         for i in range(self.n_cnn_layers - 1):
@@ -86,15 +86,15 @@ class CNNOutputGridLinearAfterAgent(nn.Module):
 
     def forward(self, inputs, hidden_state):
         if(th.cuda.is_available()):
-            x = inputs['2d'][0].cuda()
+            x = inputs['2d'].cuda()
         else:
-            x = inputs['2d'][0]
+            x = inputs['2d']
         # Apply CNN layers
         for f in self.cnn_layers:
             x = F.relu(f(x))
         actions = inputs['actions_2d'].bool()
         q = x[actions].unsqueeze(1)
-        q = self.fc(th.cat((q, inputs["1d"][0]), 1))
+        q = self.fc(th.cat((q, inputs["1d"]), 1))
         return q, self.cnn_layers[0].weight.new(q.shape[0], self.args.rnn_hidden_dim).zero_()
 
 

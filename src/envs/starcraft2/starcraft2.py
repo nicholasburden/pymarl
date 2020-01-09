@@ -2362,7 +2362,6 @@ class SC2(MultiAgentEnv):
         # out_actions = actions * avail_actions.float() + (1-avail_actions.float()) * mask_val
         # return out_actions
 
-
     @staticmethod
     def avail_actions_encoder_grid(avail_actions,
                                    obs,
@@ -2375,7 +2374,7 @@ class SC2(MultiAgentEnv):
         turn SC2 env avail actions into grid representation
         """
         # Step 1: Turn each action available into an actual SC2 action
-        #actions = avail_actions.clone()
+        # actions = avail_actions.clone()
         mask = th.arange(0,
                          avail_actions.shape[-1],
                          dtype=th.int32,
@@ -2399,17 +2398,19 @@ class SC2(MultiAgentEnv):
         action_enemy_idx = grid_flat.expand(*grid_flat.shape[:-2],
                                             actions_sc2.shape[-2],
                                             grid_flat.shape[-1]
-                                            ).gather(-1, ((actions_sc2 - n_actions_no_attack).long() * action_is_attack.long()))
+                                            ).gather(-1, (
+                    (actions_sc2 - n_actions_no_attack).long() * action_is_attack.long()))
 
         # fill in the attack actions
         actions[..., 1, :, :].view(*actions.shape[:-3], -1).scatter_(-1, action_enemy_idx, action_is_attack.float())
 
-        # now fill in the other attack actions with fixed action grids
+        # now fill in the other actions with fixed action grids
 
-        # action 0: leave all-zeros (no action)
+        # action 0: set up/east pixel from middle (no action)
+        actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 0).squeeze()] = 1.0
 
         # action 1: fill in middle tile (stop action)
-        actions[..., 0, obs_grid_shape[0]//2, obs_grid_shape[1]//2][(actions_sc2==1).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2][(actions_sc2 == 1).squeeze()] = 1.0
 
         # action 2: fill in the north tile (north)
         actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 2).squeeze()] = 1.0
@@ -2619,4 +2620,8 @@ class StatsAggregator():
         # flush stats
         self.stats = []
         return logging_str
+
+
+
+
 

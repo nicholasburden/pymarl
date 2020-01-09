@@ -37,6 +37,11 @@ class BasicMAC:
     def forward(self, ep_batch, t, test_mode=False):
         agent_inputs = self._build_inputs(ep_batch, t)
         avail_actions = ep_batch["avail_actions"][:, t]
+        if self.args.action_input_representation == "Grid":
+            obs = ep_batch["obs"][:, t]
+            avail_actions = ep_batch["avail_actions"][:, t]
+            avail_actions_grid = self.args.avail_actions_encoder(avail_actions, obs)
+            agent_inputs["actions_2d"] = avail_actions_grid.view(-1, *avail_actions_grid.shape[-3:])
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
 
         # Softmax the agent outputs if they're policy logits
@@ -65,7 +70,7 @@ class BasicMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     def init_hidden(self, batch_size):
-        if self.args.action_input_representation=="InputFlat":
+        if self.args.action_input_representation=="InputFlat" or self.args.action_input_representation=="Grid":
             self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, self.args.n_actions, -1)  # bav
         else:
             self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
@@ -93,19 +98,24 @@ class BasicMAC:
         bs = batch.batch_size
         inputs = OrderedDict()
         obs = batch["obs"][:, t]
-        if len(obs.shape[3:]) in [2, 3]:
-            inputs["2d"] = obs
+        if self.args.obs_decoder is not None:
+            obs_decoded = self.args.obs_decoder(obs)
+            inputs["2d"] = obs_decoded["2d"][0]
         else:
             inputs["1d"] = obs
+        """
+        if len(obs.shape[3:]) in [2, 3]:
+            inputs["2d"] = obs_decoded["2d"]
+        else:
+            inputs["1d"] = obs
+        """
         if self.args.obs_last_action:
             if t == 0:
                 onehot = th.zeros_like(batch["actions_onehot"][:, t])
             else:
                 onehot = batch["actions_onehot"][:, t - 1]
             inputs.update([("1d", th.cat([inputs["1d"], onehot], -1) if "1d" in inputs else onehot)])
-        if self.args.action_input_represetation == "Grid":
-            pass
-            #TODO: generate input["actions_2d"]
+
         if self.args.obs_agent_id:
             obs_agent_id = th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
@@ -114,7 +124,14 @@ class BasicMAC:
             inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
             inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
+            inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
+            inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
+            return inputs
+
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
+        if self.args.action_input_representation == "Grid":
+            inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
+            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
         return inputs
 
     def _get_input_shape(self, scheme):
@@ -123,6 +140,8 @@ class BasicMAC:
             scheme["obs"]["vshape"] = (scheme["obs"]["vshape"],)
         if isinstance(scheme["actions_onehot"]["vshape"], int):
             scheme["actions_onehot"]["vshape"] = (scheme["actions_onehot"]["vshape"],)
+        if isinstance(scheme["obs"]["vshape_decoded"], int):
+            scheme["obs"]["vshape_decoded"] = (scheme["obs"]["vshape_decoded"],)
         input_shape = OrderedDict()
         if len(scheme["obs"]["vshape_decoded"]) in [2,3]:  # i.e. multi-channel image data
             input_shape["2d"] = scheme["obs"]["vshape_decoded"]
