@@ -33,6 +33,7 @@ RUN pip3 install pygame
 RUN mkdir /install
 WORKDIR /install
 
+RUN pip3 install dill
 RUN pip3 install jsonpickle==0.9.6
 # install Sacred (from OxWhirl fork)
 RUN pip3 install setuptools
