@@ -120,7 +120,7 @@ class SC2(MultiAgentEnv):
         self.action_representation = getattr(args, "action_representation", "original")
 
         # Configuration related to obs featurisation
-        self.obs_id_encoding = getattr(args, "obs_id_encoding", "original") # one of: original, metamix
+        self.obs_id_encoding = getattr(args, "obs_id_encoding", "original") # one of: original, rnn
         self.obs_decoder = getattr(args, "obs_decoder", None)  # None: flatten output!
         self.obs_decode_on_the_fly = getattr(args, "obs_decode_on_the_fly", True)
         self.obs_grid_shape = list(map(int, getattr(args, "obs_grid_shape", "1x1").split("x"))) # (width, height)
@@ -132,7 +132,7 @@ class SC2(MultiAgentEnv):
         assert not (self.obs_resolve_multiple_occupancy and (self.obs_grid_shape is None)), "obs_grid_shape required!"
 
         if self.obs_decoder is not None:
-            self.obs_id_encoding = "metamix"
+            self.obs_id_encoding = "rnn"
             self.rasterise = True
             self.obs_resolve_multiple_occupancy = True
 
@@ -208,11 +208,11 @@ class SC2(MultiAgentEnv):
             obs_items["ally"].append(("unit_local", self.unit_type_bits))
             obs_items["enemy"].append(("unit_local", self.unit_type_bits))
 
-        if self.obs_id_encoding == "metamix":
+        if self.obs_id_encoding == "rnn":
             obs_items["ally"].append(("unit_global", 1))
             obs_items["enemy"].append(("unit_global", 1))
 
-        if self.obs_id_encoding == "metamix":
+        if self.obs_id_encoding == "rnn":
             obs_items["enemy"].append(("visible", 1,))
 
         if self.obs_all_health:
@@ -227,7 +227,7 @@ class SC2(MultiAgentEnv):
 
         obs_items["own"].append(("unit_local", self.unit_type_bits))
 
-        if self.obs_id_encoding == "metamix":
+        if self.obs_id_encoding == "rnn":
             obs_items["own"].append(("unit_global", 1,))
 
         if self.obs_own_health:
@@ -871,7 +871,7 @@ class SC2(MultiAgentEnv):
 
                 if dist < sight_range and e_unit.health > 0: # visible and alive
 
-                    if self.obs_id_encoding == "metamix":
+                    if self.obs_id_encoding == "rnn":
 
                         self.obs_set(category="id", val=e_id, obs=enemy_feats[e_id], obs_type="enemy")
                         if dist < sight_range:
@@ -890,7 +890,7 @@ class SC2(MultiAgentEnv):
                     self.obs_set(category="x_sc2", val=(e_x - x) / sight_range, obs=enemy_feats[e_id], obs_type="enemy")
                     self.obs_set(category="y_sc2", val=(e_y - y) / sight_range, obs=enemy_feats[e_id], obs_type="enemy")
 
-                    if self.obs_id_encoding == "metamix":
+                    if self.obs_id_encoding == "rnn":
                         self.obs_set(category="unit_global", val=self.get_unit_type_id_metamix(e_unit, False, self.min_unit_type) + 1, obs=enemy_feats[e_id], obs_type="enemy")
 
                     if self.obs_all_health:
@@ -917,7 +917,7 @@ class SC2(MultiAgentEnv):
         
                 if dist < sight_range and al_unit.health > 0: # visible and alive
 
-                    if self.obs_id_encoding == "metamix":
+                    if self.obs_id_encoding == "rnn":
                         self.obs_set(category="id", val=al_id, obs=ally_feats[i],
                                      obs_type="ally")  # NEW: have to do this for grid-based input!
 
@@ -926,7 +926,7 @@ class SC2(MultiAgentEnv):
                     self.obs_set(category="x_sc2", val=(al_x - x) / sight_range, obs=ally_feats[i], obs_type="ally")
                     self.obs_set(category="y_sc2", val=(al_y - y) / sight_range, obs=ally_feats[i], obs_type="ally")
 
-                    if self.obs_id_encoding == "metamix":
+                    if self.obs_id_encoding == "rnn":
                         self.obs_set(category="unit_global", val=self.get_unit_type_id_metamix(al_unit, True, self.min_unit_type) + 1, obs=ally_feats[i], obs_type="ally")
 
                     if self.obs_all_health:
@@ -977,7 +977,7 @@ class SC2(MultiAgentEnv):
         #             enemy_feats[e_id, 1] = dist / sight_range # distance
         #             enemy_feats[e_id, 2] = (e_x - x) / sight_range # relative X
         #             enemy_feats[e_id, 3] = (e_y - y) / sight_range # relative Y
-        #             if self.obs_id_encoding == "metamix":
+        #             if self.obs_id_encoding == "rnn":
         #                 enemy_feats[e_id, 4] = self.get_unit_type_id_metamix(e_unit, False, self.min_unit_type) + 1
         #                 ind = 5
         #             else:
@@ -1010,7 +1010,7 @@ class SC2(MultiAgentEnv):
         #             ally_feats[i, 2] = (al_x - x) / sight_range # relative X
         #             ally_feats[i, 3] = (al_y - y) / sight_range # relative Y
         #
-        #             if self.obs_id_encoding == "metamix":
+        #             if self.obs_id_encoding == "rnn":
         #                 ally_feats[i, 4] = self.get_unit_type_id_metamix(al_unit, True, self.min_unit_type) + 1
         #                 ind = 5
         #             else:
@@ -1042,7 +1042,7 @@ class SC2(MultiAgentEnv):
         #             own_feats[ind] = unit.shield / max_shield
         #             ind += 1
         #
-        #     if self.obs_id_encoding == "metamix":
+        #     if self.obs_id_encoding == "rnn":
         #         own_feats[ind] = self.get_unit_type_id_metamix(unit, True, self.min_unit_type) + 1
         #         ind += 1
         #
@@ -1209,8 +1209,8 @@ class SC2(MultiAgentEnv):
         #    dbg_grid[int(k[0]), int(k[1])] = len(v)
         #print(dbg_grid)
 
-        def _pref_sort(lst, obs_id_encoding = "metamix"):
-            assert obs_id_encoding == "metamix", "not implemented!"
+        def _pref_sort(lst, obs_id_encoding = "rnn"):
+            assert obs_id_encoding == "rnn", "not implemented!"
             # arrange elements such that the one least critical to be relocated is popped first
             allegiance_dict = {"ally":0, "enemy":1}
             type_dict = {1: 0, 2: 0, 3: 1} # prioritise long range units to be relocated (1: short range unit)

@@ -124,8 +124,9 @@ class BasicMAC:
             inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
             inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
-            inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
-            inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
+            if self.args.obs_decoder is not None:
+                inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
+                inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
             return inputs
 
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])

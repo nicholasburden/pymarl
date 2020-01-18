@@ -8,7 +8,7 @@ import pandas as pd
 import chart_studio as py
 import chart_studio.tools as tls
 import matplotlib.patches as mpatches
-#from sklearn import manifold, datasets
+from sklearn import manifold, datasets
 
 
 def get_mongo_db_client(conf_name, maxSevSelDelay=5000, root_dir="."):
@@ -75,7 +75,7 @@ class MongoCentral():
             query = db.runs.find({"config.name": {'$regex': r'^{}(.*)'.format(name)},
                                   "config.label": {'$regex': r'^{}(.*)'.format(label)}},
                                  {"config.name": 1, "config.label":1})  # .find({"config":None})
-            names.extend([{"name":_q["config"]["name"], "label":_q["config"]["label"]} for _q in query])
+            names.extend([{"name":_q["config"]["name"], "label":_q["config"]["label"], "_id":_q["_id"]} for _q in query])
             print("Done Loading...")
 
         #if bundle:  # bundle by experiment name
@@ -88,7 +88,7 @@ class MongoCentral():
         #            bundle_dic[exp_name] = []
         #        bundle_dic[exp_name].append(name)
         #    return bundle_dic
-        return names
+        return {"bundle1": names}
     
     def get_name_prop(self, name, props):
         if not isinstance(props, (list, tuple)):
@@ -96,10 +96,10 @@ class MongoCentral():
         res = []
         for key, db in self.db.items():
             if isinstance(name, dict):
-                query_dct = {"config.name": name["name"], "config.label": name["label"]}
+                query_dct = {"_id": name["_id"]}
             else:
                 query_dct = {"config.name": name}
-                
+            #print(query_dct, {prop: 1 for prop in props})
             query = db.runs.find(query_dct, {prop: 1 for prop in props})
             for _q in query:
                 res.append(_q)
@@ -137,7 +137,7 @@ def bundle_average(mongo_central,
                 property_res = mongo_central.get_name_prop(_run_name, "info.{}".format(property_str))
                 propertyT_res = mongo_central.get_name_prop(_run_name, "info.{}".format(propertyT_str))
                 fail_trace_res = mongo_central.get_name_prop(_run_name, "fail_trace")
-
+                
                 # retrieve results in form of lists
                 if property_str not in property_res[0]["info"]:
                     print("Property str not available: {} not in results for run {}".format(property_str, _run_name))
@@ -185,7 +185,7 @@ def bundle_average(mongo_central,
         if max(l) > max_T:
             max_T = max(l)
     Tindex_list = list(range(min_T, max_T, t_res))
-
+    
     # TODO: create list of lists with index Tindex_list and the number of processes per bundle that are still active at this point
     # this will need to be derived from the process end times - these need to be supplied above
 
@@ -243,27 +243,26 @@ def bundle_average(mongo_central,
 
 
 def region_split(lst, idx_lst, splitsymbol):
+    # print("split symbol: ", splitsymbol)
     last_symb = splitsymbol
     last_split_idx = 0
     out_lst = []
     idx_out_lst = []
     for idx, item in enumerate(lst):
-        # print(item)
-        if str(item) != str(last_symb) and (str(item) == str(splitsymbol) or idx == len(lst) - 1):
-            # print("split:", last_symb, splitsymbol)
+        if (str(item) == str(splitsymbol) and str(item) != str(last_symb)) or (idx == len(lst) - 1):            
             region = lst[last_split_idx: idx]
             region_idxs = idx_lst[last_split_idx: idx]
+            # print("NACHO!", region)
             if region != []:
                 out_lst.append(region)
                 idx_out_lst.append(region_idxs)
         if str(item) != str(last_symb) and str(last_symb) == str(splitsymbol):
-            # print("new index:", last_symb, splitsymbol)
             last_split_idx = idx
         last_symb = item
     return out_lst, idx_out_lst
 
 
-def plot_bundle_avgs(bundle_avgs):
+def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
     # TODO: Add skew and kurtosis plots!
 
     # define colors
@@ -271,7 +270,7 @@ def plot_bundle_avgs(bundle_avgs):
     uncert_colors = ["#cccbfc", "#ffcccc", "#cce5cc", "#ff14ff"]*10
 
     # set up figure and axes
-    fig = plt.figure(figsize=(40, 20))
+    fig = plt.figure(figsize=figsize)
     gs = gridspec.GridSpec(nrows=20,
                            ncols=5,
                            left=0.01, # 0.00
@@ -300,6 +299,8 @@ def plot_bundle_avgs(bundle_avgs):
     for color_idx, (_min, _max) in enumerate(zip(bundle_avgs["min"], bundle_avgs["max"])):
         min_regions, min_idx_regions = region_split(_min, bundle_avgs["_idx"], float("nan"))
         max_regions, max_idx_regions = region_split(_max, bundle_avgs["_idx"], float("nan"))
+        # print("min/bundle_avgs:", _min, bundle_avgs["_idx"], "min_regions:", min_regions)
+        # print("max/bundle_avgs:", _max, bundle_avgs["_idx"], "max_regions:", max_regions)
         for min_region, max_region, min_idx_region, max_idx_region in zip(min_regions, max_regions, min_idx_regions,
                                                                           max_idx_regions):
             ax_main.plot(min_idx_region, min_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7,
