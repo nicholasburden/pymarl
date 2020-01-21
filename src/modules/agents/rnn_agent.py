@@ -183,7 +183,7 @@ class MathiasAgent(nn.Module):
 
 class RNNConvDDPGInputGridNoIDAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(RNNConvDDPGInputGridAgent, self).__init__()
+        super(RNNConvDDPGInputGridNoIDAgent, self).__init__()
         self.args = args
 
         # self.conv1 = EncoderResNet(Bottleneck, [3, 4, 6, 3])
