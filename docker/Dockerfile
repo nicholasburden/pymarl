@@ -44,7 +44,7 @@ RUN git clone https://github.com/oxwhirl/sacred.git /install/sacred && cd /insta
 #### -------------------------------------------------------------------
 RUN pip3 install torch
 RUN pip3 install torchvision snakeviz pytest probscale
-
+RUN pip3 install pymongo
 ## -- SMAC
 RUN pip3 install git+https://github.com/oxwhirl/smac.git
 ENV SC2PATH /pymarl/3rdparty/StarCraftII
