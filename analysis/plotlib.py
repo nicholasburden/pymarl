@@ -277,8 +277,10 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                            right=0.7, # 0.7
                            wspace=0.01)
     ax_main = fig.add_subplot(gs[:-1, :])
-    ax_fail = fig.add_subplot(gs[-1, :],
-                              sharex=ax_main)
+    ax_main.set_xlabel("T")
+    ax_main.set_ylabel("Test Win Rate")
+    #ax_fail = fig.add_subplot(gs[-1, :],
+                              #sharex=ax_main)
 
     # plot uncertainties
     for color_idx, (mean, uncert) in enumerate(zip(bundle_avgs["mean"], bundle_avgs["uncert"])):
@@ -294,7 +296,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                                  uncert_higher_region,
                                  color=uncert_colors[color_idx % len(uncert_colors)],
                                  alpha=0.4)
-
+    """
     # plot min / max
     for color_idx, (_min, _max) in enumerate(zip(bundle_avgs["min"], bundle_avgs["max"])):
         min_regions, min_idx_regions = region_split(_min, bundle_avgs["_idx"], float("nan"))
@@ -307,7 +309,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                          linestyle="--")
             ax_main.plot(max_idx_region, max_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7,
                          linestyle="--")
-
+"""
     # plot means
     for color_idx, mean in enumerate(bundle_avgs["mean"]):
         mean_regions, mean_idx_regions = region_split(mean, bundle_avgs["_idx"], float("nan"))
@@ -320,8 +322,8 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                for _i, (_algo_label, _mean_label) in
                enumerate(zip(bundle_avgs["algo_label"], bundle_avgs["mean_label"]))]
     ax_main.legend(handles=patches)
-
     # plot running processes
+    """
     endT_density_lst = [[len([_ for _x in run_endT_item if _x >= _t]) for _t in bundle_avgs["_idx"]] for run_endT_item
                         in bundle_avgs["endT"]]
     ax_fail.stackplot(bundle_avgs["_idx"],
@@ -336,6 +338,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                     ax_fail.text(failT, _run_idx, "{}!".format(_run_idx))
                 except Exception as e:
                     pass
+    """
     return fig
 
 def show_config_diffs(mongo_central, bundles):
