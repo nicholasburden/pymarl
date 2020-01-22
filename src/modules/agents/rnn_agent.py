@@ -217,6 +217,8 @@ class RNNConvDDPGInputGridNoIDAgent(nn.Module):
         return q, h
 
 
+
+
 #Gudrun = RNNAgent
 #Hannelore = RNNInputAction
 #Julia = DDPG1
