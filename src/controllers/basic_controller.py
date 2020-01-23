@@ -3,7 +3,6 @@ from components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
 import numpy as np
 from collections import OrderedDict
-from torchvision.models.modelparts import count_parameters
 
 
 
@@ -44,7 +43,8 @@ class BasicMAC:
             avail_actions_grid = self.args.avail_actions_encoder(avail_actions, obs)
             agent_inputs["actions_2d"] = avail_actions_grid.view(-1, *avail_actions_grid.shape[-3:])
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-        print(sum(p.numel() for p in self.agent.parameters()))
+       
+	#print(sum(p.numel() for p in self.agent.parameters()))
         # Softmax the agent outputs if they're policy logits
         if self.agent_output_type == "pi_logits":
 
