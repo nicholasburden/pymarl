@@ -27,6 +27,33 @@ class BasicMAC:
         order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
         return th.index_select(a, dim, order_index.to(self.args.device))
 
+    def repeat_np(a, repeats, dim):
+        """
+        Substitute for numpy's repeat function. Taken from https://discuss.pytorch.org/t/how-to-tile-a-tensor/13853/2
+        torch.repeat([1,2,3], 2) --> [1, 2, 3, 1, 2, 3]
+        np.repeat([1,2,3], repeats=2, axis=0) --> [1, 1, 2, 2, 3, 3]
+
+        :param a: tensor
+        :param repeats: number of repeats
+        :param dim: dimension where to repeat
+        :return: tensor with repitions
+        """
+
+        init_dim = a.size(dim)
+        repeat_idx = [1] * a.dim()
+        repeat_idx[dim] = repeats
+        a = a.repeat(*(repeat_idx))
+        if a.is_cuda:  # use cuda-device if input was on cuda device already
+            order_index = th.cuda.LongTensor(
+                th.cat([init_dim * th.arange(repeats, device=a.device) + i for i in range(init_dim)]))
+        else:
+            order_index = th.LongTensor(
+                th.cat([init_dim * th.arange(repeats) + i for i in range(init_dim)]))
+
+        return th.index_select(a, dim, order_index)
+
+
+
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
         avail_actions = ep_batch["avail_actions"][:, t_ep]
@@ -123,17 +150,17 @@ class BasicMAC:
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
             inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
-            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
+            inputs["1d"] = self.np_repeat(inputs["1d"], self.args.n_actions, 0)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
             if self.args.obs_decoder is not None:
                 inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
-                inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
+                inputs["2d"] = self.np_repeat(inputs["2d"], self.args.n_actions, 0)
             return inputs
 
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
         if self.args.action_input_representation == "Grid":
-            inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
-            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
+            inputs["2d"] = self.np_repeat(inputs["2d"], self.args.n_actions, 0)
+            inputs["1d"] = self.np_repeat(inputs["1d"], self.args.n_actions, 0)
         return inputs
 
     def _get_input_shape(self, scheme):
