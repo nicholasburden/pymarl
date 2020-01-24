@@ -8,7 +8,7 @@ REGISTRY["rnn_input_action"] = RNNInputActionAgent
 REGISTRY["rnn_convddpg"] = RNNConvDDPGAgent
 REGISTRY["rnn_convddpg_input_grid"] = RNNConvDDPGInputGridAgent
 REGISTRY["rnn_convddpg_input_grid_no_id"] = RNNConvDDPGInputGridNoIDAgent
-REGISTRY["rnn_convddpg_input_grid_no_id"] = RNNConvNatureInputGridAgent
+REGISTRY["rnn_convnature_input_grid"] = RNNConvNatureInputGridAgent
 
 REGISTRY["rnn_mathias"] = MathiasAgent
 REGISTRY["cnn_output_grid_linear_before"] = CNNOutputGridLinearBeforeAgent
