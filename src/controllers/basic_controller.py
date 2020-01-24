@@ -19,41 +19,6 @@ class BasicMAC:
 
         self.hidden_states = None
 
-    def tile(self, a, dim, n_tile):
-        init_dim = a.size(dim)
-        repeat_idx = [1] * a.dim()
-        repeat_idx[dim] = n_tile
-        a = a.repeat(*(repeat_idx))
-        order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
-        return th.index_select(a, dim, order_index.to(self.args.device))
-
-    def np_repeat(self, a, repeats, dim):
-        """
-        Substitute for numpy's repeat function. Taken from https://discuss.pytorch.org/t/how-to-tile-a-tensor/13853/2
-        torch.repeat([1,2,3], 2) --> [1, 2, 3, 1, 2, 3]
-        np.repeat([1,2,3], repeats=2, axis=0) --> [1, 1, 2, 2, 3, 3]
-
-        :param a: tensor
-        :param repeats: number of repeats
-        :param dim: dimension where to repeat
-        :return: tensor with repitions
-        """
-
-        init_dim = a.size(dim)
-        repeat_idx = [1] * a.dim()
-        repeat_idx[dim] = repeats
-        a = a.repeat(*(repeat_idx))
-        if a.is_cuda:  # use cuda-device if input was on cuda device already
-            order_index = th.cuda.LongTensor(
-                th.cat([init_dim * th.arange(repeats, device=a.device) + i for i in range(init_dim)]))
-        else:
-            order_index = th.LongTensor(
-                th.cat([init_dim * th.arange(repeats) + i for i in range(init_dim)]))
-
-        return th.index_select(a, dim, order_index)
-
-
-
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
         avail_actions = ep_batch["avail_actions"][:, t_ep]
