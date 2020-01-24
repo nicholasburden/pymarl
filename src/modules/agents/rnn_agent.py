@@ -115,7 +115,7 @@ class RNNConvDDPGInputGridAgent(nn.Module):
         in_channels, n_dim_x, n_dim_y = input_shape["2d"]
         in_channels += 2 # action channels
 
-        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=2))
+        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=5, stride=3))
         self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=3))
 
         # find output dim
@@ -233,8 +233,8 @@ class RNNConvNatureInputGridAgent(nn.Module):
         #Debug, nature encoder:
 
         self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=2))
-        self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=2, stride=1))
-        self.conv3 = layer_init(nn.Conv2d(32, 32, kernel_size=2, stride=1))
+        self.conv2 = layer_init(nn.Conv2d(32, 64, kernel_size=2, stride=2))
+        self.conv3 = layer_init(nn.Conv2d(64, 64, kernel_size=2, stride=1))
 
         # find output dim
         dummy_th = th.zeros(1, in_channels, *input_shape["2d"][1:]).to(next(self.parameters()).device)
