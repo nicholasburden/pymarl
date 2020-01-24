@@ -114,11 +114,11 @@ class BasicMAC:
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
-            inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
+            inputs["1d"] = inputs["1d"].view(bs*self.n_agents, -1)
             inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
             if self.args.obs_decoder is not None:
-                inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
+                inputs["2d"] = inputs["2d"].view(bs * self.n_agents, *inputs["2d"].shape[2:])
                 inputs["2d"] = th.repeat_interleave(inputs["2d"], self.args.n_actions, 0)
             return inputs
 
