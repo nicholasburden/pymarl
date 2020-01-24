@@ -150,17 +150,17 @@ class BasicMAC:
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
             inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
-            inputs["1d"] = self.np_repeat(inputs["1d"], self.args.n_actions, 0)
+            inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
             if self.args.obs_decoder is not None:
                 inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
-                inputs["2d"] = self.np_repeat(inputs["2d"], self.args.n_actions, 0)
+                inputs["2d"] = th.repeat_interleave(inputs["2d"], self.args.n_actions, 0)
             return inputs
 
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
         if self.args.action_input_representation == "Grid":
-            inputs["2d"] = self.np_repeat(inputs["2d"], self.args.n_actions, 0)
-            inputs["1d"] = self.np_repeat(inputs["1d"], self.args.n_actions, 0)
+            inputs["2d"] = th.repeat_interleave(inputs["2d"], self.args.n_actions, 0)
+            inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
         return inputs
 
     def _get_input_shape(self, scheme):
