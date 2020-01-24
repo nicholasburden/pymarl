@@ -44,7 +44,7 @@ class BasicMAC:
             agent_inputs["actions_2d"] = avail_actions_grid.view(-1, *avail_actions_grid.shape[-3:])
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
        
-	#print(sum(p.numel() for p in self.agent.parameters()))
+	    #print(sum(p.numel() for p in self.agent.parameters()))
         # Softmax the agent outputs if they're policy logits
         if self.agent_output_type == "pi_logits":
 
