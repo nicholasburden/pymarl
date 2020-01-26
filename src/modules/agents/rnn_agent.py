@@ -130,7 +130,7 @@ class RNNConvDDPGInputGridAgent(nn.Module):
         # make hidden states on same device as model
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
-    @profile
+
     def forward(self, inputs, hidden_state):
         y = th.cat([inputs["2d"], inputs["actions_2d"]], dim=-3)
         y = F.elu(self.conv1(y))
