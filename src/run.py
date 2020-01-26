@@ -164,11 +164,15 @@ def run_sequential(args, logger):
 
     logger.console_logger.info("Beginning training for {} timesteps".format(args.t_max))
 
-    while runner.t_env <= args.t_max:
 
+
+
+    while runner.t_env <= args.t_max:
+        th.cuda.empty_cache()
         # Run for a whole episode at a time
         episode_batch = runner.run(test_mode=False)
         buffer.insert_episode_batch(episode_batch)
+        del episode_batch
 
         if buffer.can_sample(args.batch_size):
             episode_sample = buffer.sample(args.batch_size)
@@ -180,7 +184,10 @@ def run_sequential(args, logger):
             if episode_sample.device != args.device:
                 episode_sample.to(args.device)
 
+
+
             learner.train(episode_sample, runner.t_env, episode)
+            th.cuda.empty_cache()
 
         # Execute test runs once in a while
         n_test_runs = max(1, args.test_nepisode // runner.batch_size)
@@ -194,6 +201,7 @@ def run_sequential(args, logger):
             last_test_T = runner.t_env
             for _ in range(n_test_runs):
                 runner.run(test_mode=True)
+            th.cuda.empty_cache()
 
         if args.save_model and (runner.t_env - model_save_time >= args.save_model_interval or model_save_time == 0):
             model_save_time = runner.t_env
@@ -207,6 +215,7 @@ def run_sequential(args, logger):
             learner.save_models(save_path)
 
         episode += args.batch_size_run
+        th.cuda.empty_cache()
 
         if (runner.t_env - last_log_T) >= args.log_interval:
             logger.log_stat("episode", episode, runner.t_env)

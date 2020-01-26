@@ -42,7 +42,7 @@ class ParallelRunner:
 
     def setup(self, scheme, groups, preprocess, mac):
         self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
-                                 preprocess=preprocess, device=self.args.device)
+                                 preprocess=preprocess, device="cpu" if self.args.buffer_cpu_only else self.args.device)
         self.mac = mac
         self.scheme = scheme
         self.groups = groups
@@ -59,6 +59,9 @@ class ParallelRunner:
             parent_conn.send(("close", None))
 
     def reset(self):
+        if hasattr(self, "batch"):
+            del self.batch
+
         self.batch = self.new_batch()
 
         # Reset the envs
@@ -102,7 +105,7 @@ class ParallelRunner:
 
             # Update the actions taken
             actions_chosen = {
-                "actions": actions.unsqueeze(1)
+                "actions": actions.unsqueeze(1).to(self.batch.device)
             }
             self.batch.update(actions_chosen, bs=envs_not_terminated, ts=self.t, mark_filled=False)
 
@@ -196,6 +199,7 @@ class ParallelRunner:
             if hasattr(self.mac.action_selector, "epsilon"):
                 self.logger.log_stat("epsilon", self.mac.action_selector.epsilon, self.t_env)
             self.log_train_stats_t = self.t_env
+
 
         return self.batch
 

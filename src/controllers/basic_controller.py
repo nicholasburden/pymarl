@@ -24,24 +24,28 @@ class BasicMAC:
         repeat_idx = [1] * a.dim()
         repeat_idx[dim] = n_tile
         a = a.repeat(*(repeat_idx))
-        order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)]))
-        return th.index_select(a, dim, order_index.to(self.args.device))
+        order_index = th.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])).to(a.device)
+        return th.index_select(a, dim, order_index)
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
-        avail_actions = ep_batch["avail_actions"][:, t_ep]
+        avail_actions = ep_batch["avail_actions"][:, t_ep].to(self.args.device)
         agent_outputs = self.forward(ep_batch, t_ep, test_mode=test_mode)
-        chosen_actions = self.action_selector.select_action(agent_outputs[bs], avail_actions[bs], t_env, test_mode=test_mode)
+        chosen_actions = self.action_selector.select_action(agent_outputs[bs].to(self.args.device),
+                                                            avail_actions[bs].to(self.args.device),
+                                                            t_env,
+                                                            test_mode=test_mode)
         return chosen_actions
 
     def forward(self, ep_batch, t, test_mode=False):
         agent_inputs = self._build_inputs(ep_batch, t)
-        avail_actions = ep_batch["avail_actions"][:, t]
+        avail_actions = ep_batch["avail_actions"][:, t].to(self.args.device)
         if self.args.action_input_representation == "Grid":
-            obs = ep_batch["obs"][:, t]
-            avail_actions = ep_batch["avail_actions"][:, t]
+            obs = ep_batch["obs"][:, t].to(self.args.device)
+            avail_actions = ep_batch["avail_actions"][:, t].to(self.args.device)
             avail_actions_grid = self.args.avail_actions_encoder(avail_actions, obs)
             agent_inputs["actions_2d"] = avail_actions_grid.view(-1, *avail_actions_grid.shape[-3:])
+
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
 
         # Softmax the agent outputs if they're policy logits
@@ -67,7 +71,7 @@ class BasicMAC:
                     # Zero out the unavailable actions
                     agent_outs[reshaped_avail_actions == 0] = 0.0
 
-        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
+        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1).to(ep_batch.device)
 
     def init_hidden(self, batch_size):
         if self.args.action_input_representation=="InputFlat" or self.args.action_input_representation=="Grid":
@@ -97,7 +101,7 @@ class BasicMAC:
         # Other MACs might want to e.g. delegate building inputs to each agent
         bs = batch.batch_size
         inputs = OrderedDict()
-        obs = batch["obs"][:, t]
+        obs = batch["obs"][:, t].to(self.args.device)
         if self.args.obs_decoder is not None:
             obs_decoded = self.args.obs_decoder(obs)
             inputs["2d"] = obs_decoded["2d"][0]
@@ -111,13 +115,13 @@ class BasicMAC:
         """
         if self.args.obs_last_action:
             if t == 0:
-                onehot = th.zeros_like(batch["actions_onehot"][:, t])
+                onehot = th.zeros_like(batch["actions_onehot"][:, t].to(self.args.device))
             else:
-                onehot = batch["actions_onehot"][:, t - 1]
+                onehot = batch["actions_onehot"][:, t - 1].to(self.args.device)
             inputs.update([("1d", th.cat([inputs["1d"], onehot], -1) if "1d" in inputs else onehot)])
 
         if self.args.obs_agent_id:
-            obs_agent_id = th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)
+            obs_agent_id = th.eye(self.n_agents, device=self.args.device).unsqueeze(0).expand(bs, -1, -1)
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)

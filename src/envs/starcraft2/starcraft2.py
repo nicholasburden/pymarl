@@ -2407,22 +2407,22 @@ class SC2(MultiAgentEnv):
         # now fill in the other actions with fixed action grids
 
         # action 0: set up/east pixel from middle (no action)
-        actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 0).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 0).squeeze(-1)] = 1.0
 
         # action 1: fill in middle tile (stop action)
-        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2][(actions_sc2 == 1).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2][(actions_sc2 == 1).squeeze(-1)] = 1.0
 
         # action 2: fill in the north tile (north)
-        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 2).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 2).squeeze(-1)] = 1.0
 
         # action 3: fill in the south tile (south)
-        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 + 1][(actions_sc2 == 3).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 + 1][(actions_sc2 == 3).squeeze(-1)] = 1.0
 
         # action 4: fill in the east tile (east)
-        actions[..., 0, obs_grid_shape[0] // 2 + 1, obs_grid_shape[1] // 2][(actions_sc2 == 4).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2 + 1, obs_grid_shape[1] // 2][(actions_sc2 == 4).squeeze(-1)] = 1.0
 
         # action 5: fill in the west tile (west)
-        actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2][(actions_sc2 == 5).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2][(actions_sc2 == 5).squeeze(-1)] = 1.0
 
         return actions
 
