@@ -36,7 +36,8 @@ class BasicMAC:
                                                             t_env,
                                                             test_mode=test_mode)
         return chosen_actions
-
+    
+    @profile
     def forward(self, ep_batch, t, test_mode=False):
         agent_inputs = self._build_inputs(ep_batch, t)
         avail_actions = ep_batch["avail_actions"][:, t].to(self.args.device)
@@ -47,7 +48,8 @@ class BasicMAC:
             agent_inputs["actions_2d"] = avail_actions_grid.view(-1, *avail_actions_grid.shape[-3:])
 
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-
+       
+	    #print(sum(p.numel() for p in self.agent.parameters()))
         # Softmax the agent outputs if they're policy logits
         if self.agent_output_type == "pi_logits":
 
@@ -96,6 +98,7 @@ class BasicMAC:
     def _build_agents(self, input_shape):
         self.agent = agent_REGISTRY[self.args.agent](input_shape, self.args)
 
+    @profile
     def _build_inputs(self, batch, t):
         # Assumes homogenous agents with flat observations.
         # Other MACs might want to e.g. delegate building inputs to each agent
@@ -125,18 +128,18 @@ class BasicMAC:
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
         if self.args.action_input_representation == "InputFlat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
-            inputs["1d"] = inputs["1d"].reshape(bs*self.n_agents, -1)
-            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
+            inputs["1d"] = inputs["1d"].view(bs*self.n_agents, -1)
+            inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
             inputs["1d"] = th.cat((inputs["1d"].to(self.args.device), avail_actions.to(self.args.device)), -1)
             if self.args.obs_decoder is not None:
-                inputs["2d"] = inputs["2d"].reshape(bs * self.n_agents, *inputs["2d"].shape[2:])
-                inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
+                inputs["2d"] = inputs["2d"].view(bs * self.n_agents, *inputs["2d"].shape[2:])
+                inputs["2d"] = th.repeat_interleave(inputs["2d"], self.args.n_actions, 0)
             return inputs
 
         inputs = OrderedDict([(k, v.reshape(bs * self.n_agents, *v.shape[2:])) for k, v in inputs.items()])
         if self.args.action_input_representation == "Grid":
-            inputs["2d"] = self.tile(inputs["2d"], 0, self.args.n_actions)
-            inputs["1d"] = self.tile(inputs["1d"], 0, self.args.n_actions)
+            inputs["2d"] = th.repeat_interleave(inputs["2d"], self.args.n_actions, 0)
+            inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
         return inputs
 
     def _get_input_shape(self, scheme):
@@ -157,4 +160,3 @@ class BasicMAC:
         if self.args.obs_agent_id:
             input_shape.update([("1d", (input_shape.get("1d", [0])[0] + self.n_agents,))])
         return input_shape
-

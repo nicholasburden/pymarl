@@ -50,14 +50,15 @@ difficulties = {
     "A": sc_pb.CheatInsane,
 }
 
-action_move_id = 16     #    target: PointOrUnit
-action_attack_id = 23   #    target: PointOrUnit
-action_stop_id = 4      #    target: None
-action_heal_id = 386    #    target: Unit
+action_move_id = 16  # target: PointOrUnit
+action_attack_id = 23  # target: PointOrUnit
+action_stop_id = 4  # target: None
+action_heal_id = 386  # target: Unit
 
 '''
 StarCraft II
 '''
+
 
 class SC2(MultiAgentEnv):
 
@@ -108,7 +109,7 @@ class SC2(MultiAgentEnv):
         self.heuristic = args.heuristic_ai
         self.window_size = (2560, 1600)
         self.save_replay_prefix = args.replay_prefix
-        self.restrict_actions = True #args.restrict_actions
+        self.restrict_actions = True  # args.restrict_actions
 
         # For sanity check
         self.debug_inputs = False
@@ -120,10 +121,10 @@ class SC2(MultiAgentEnv):
         self.action_representation = getattr(args, "action_representation", "original")
 
         # Configuration related to obs featurisation
-        self.obs_id_encoding = getattr(args, "obs_id_encoding", "original") # one of: original, rnn
+        self.obs_id_encoding = getattr(args, "obs_id_encoding", "original")  # one of: original, metamix
         self.obs_decoder = getattr(args, "obs_decoder", None)  # None: flatten output!
         self.obs_decode_on_the_fly = getattr(args, "obs_decode_on_the_fly", True)
-        self.obs_grid_shape = list(map(int, getattr(args, "obs_grid_shape", "1x1").split("x"))) # (width, height)
+        self.obs_grid_shape = list(map(int, getattr(args, "obs_grid_shape", "1x1").split("x")))  # (width, height)
         self.obs_resolve_multiple_occupancy = getattr(args, "obs_resolve_multiple_occupancy", False)
         self.obs_grid_rasterise = getattr(args, "obs_grid_rasterise", False)
 
@@ -132,16 +133,16 @@ class SC2(MultiAgentEnv):
         assert not (self.obs_resolve_multiple_occupancy and (self.obs_grid_shape is None)), "obs_grid_shape required!"
 
         if self.obs_decoder is not None:
-            self.obs_id_encoding = "rnn"
+            self.obs_id_encoding = "metamix"
             self.rasterise = True
             self.obs_resolve_multiple_occupancy = True
 
         # Finalize action setup
         self.n_actions = self.n_actions_no_attack + self.n_enemies
         if self.action_representation == "output_grid":
-            self.n_actions_encoding = self.obs_grid_shape[0]*self.obs_grid_shape[1] + self.n_actions_no_attack
+            self.n_actions_encoding = self.obs_grid_shape[0] * self.obs_grid_shape[1] + self.n_actions_no_attack
         elif self.action_representation == "input_grid":
-            self.n_actions_encoding = self.obs_grid_shape[0]*self.obs_grid_shape[1] + self.n_actions_no_attack
+            self.n_actions_encoding = self.obs_grid_shape[0] * self.obs_grid_shape[1] + self.n_actions_no_attack
         elif self.action_representation == "input_xy":
             self.n_actions_encoding = self.obs_grid_shape[0] + self.obs_grid_shape[1] + self.n_actions_no_attack
         else:
@@ -178,8 +179,10 @@ class SC2(MultiAgentEnv):
         self.map_play_area_max = self._map_info.playable_area.p1
         self.max_distance_x = self.map_play_area_max.x - self.map_play_area_min.x
         self.max_distance_y = self.map_play_area_max.y - self.map_play_area_min.y
-        self.terrain_height = np.flip(np.transpose(np.array(list(self._map_info.terrain_height.data)).reshape(self.map_x, self.map_y)), 1)
-        self.pathing_grid = np.flip(np.transpose(np.array(list(self._map_info.pathing_grid.data)).reshape(self.map_x, self.map_y)), 1)
+        self.terrain_height = np.flip(
+            np.transpose(np.array(list(self._map_info.terrain_height.data)).reshape(self.map_x, self.map_y)), 1)
+        self.pathing_grid = np.flip(
+            np.transpose(np.array(list(self._map_info.pathing_grid.data)).reshape(self.map_x, self.map_y)), 1)
 
         self._episode_count = 0
         self._total_steps = 0
@@ -193,7 +196,7 @@ class SC2(MultiAgentEnv):
 
         # Calculate feature sizes
 
-        obs_items = {"ally": [], "enemy": [], "own": [] }
+        obs_items = {"ally": [], "enemy": [], "own": []}
         obs_items["ally"].append(("visible", 1,))
         obs_items["ally"].append(("distance_sc2", 1,))
         obs_items["ally"].append(("x_sc2", 1,))
@@ -208,11 +211,11 @@ class SC2(MultiAgentEnv):
             obs_items["ally"].append(("unit_local", self.unit_type_bits))
             obs_items["enemy"].append(("unit_local", self.unit_type_bits))
 
-        if self.obs_id_encoding == "rnn":
+        if self.obs_id_encoding == "metamix":
             obs_items["ally"].append(("unit_global", 1))
             obs_items["enemy"].append(("unit_global", 1))
 
-        if self.obs_id_encoding == "rnn":
+        if self.obs_id_encoding == "metamix":
             obs_items["enemy"].append(("visible", 1,))
 
         if self.obs_all_health:
@@ -227,7 +230,7 @@ class SC2(MultiAgentEnv):
 
         obs_items["own"].append(("unit_local", self.unit_type_bits))
 
-        if self.obs_id_encoding == "rnn":
+        if self.obs_id_encoding == "metamix":
             obs_items["own"].append(("unit_global", 1,))
 
         if self.obs_own_health:
@@ -263,7 +266,7 @@ class SC2(MultiAgentEnv):
             for l in lst:
                 name = l[0]
                 length = l[1]
-                dct[name] = (ctr, ctr+length)
+                dct[name] = (ctr, ctr + length)
                 ctr += length
             return dct
 
@@ -310,7 +313,7 @@ class SC2(MultiAgentEnv):
                                                   obs_get=self.obs_get,
                                                   obs_set=self.obs_set,
                                                   to_grid_coords=self.to_grid_coords,
-                                                  from_grid_coords = self.from_grid_coords,
+                                                  from_grid_coords=self.from_grid_coords,
                                                   debug=self.obs_resolve_multiple_occupancy_debug
                                                   )
 
@@ -318,13 +321,13 @@ class SC2(MultiAgentEnv):
                                    ally_feats_size=self.ally_feats_size,
                                    enemy_feats_size=self.enemy_feats_size,
                                    move_feats_len=self.move_feats_len,
-                                   n_allies=self.n_agents-1,
+                                   n_allies=self.n_agents - 1,
                                    n_enemies=self.n_enemies,
                                    nf_al=self.nf_al,
                                    nf_en=self.nf_en, )
 
         self.create_channels = partial(SC2._create_channels,
-                                       n_allies=self.n_agents-1,
+                                       n_allies=self.n_agents - 1,
                                        n_enemies=self.n_enemies,
                                        obs_grid_shape=self.obs_grid_shape,
                                        obs_get=self.obs_get,
@@ -341,7 +344,7 @@ class SC2(MultiAgentEnv):
         if isinstance(idx, tuple):
             ret = obs[..., idx[0]:idx[1]]
         else:
-            ret = obs[..., idx:idx+1]
+            ret = obs[..., idx:idx + 1]
         return ret[0] if len(ret.shape) == 1 else ret
 
     @staticmethod
@@ -352,7 +355,7 @@ class SC2(MultiAgentEnv):
             v = obs[..., idx[0]:idx[1]]
             v[:] = val
         else:
-            v = obs[..., idx:idx+1]
+            v = obs[..., idx:idx + 1]
             v[:] = val
         return obs
 
@@ -360,7 +363,7 @@ class SC2(MultiAgentEnv):
         # This should be called once from the init_units function
 
         self.stalker_id = self.sentry_id = self.zealot_id = self.colossus_id = 0
-        self.marine_id = self.marauder_id= self.medivac_id = 0
+        self.marine_id = self.marauder_id = self.medivac_id = 0
         self.hydralisk_id = self.zergling_id = self.baneling_id = 0
 
         self.min_unit_type = min_unit_type
@@ -391,16 +394,17 @@ class SC2(MultiAgentEnv):
 
         # Setting up the interface
         self.interface = sc_pb.InterfaceOptions(
-                raw = True, # raw, feature-level data
-                score = True)
+            raw=True,  # raw, feature-level data
+            score=True)
 
         self._sc2_proc = self._run_config.start(game_version=self.game_version, window_size=self.window_size)
         self.controller = self._sc2_proc.controller
 
         # Create the game.
-        create = sc_pb.RequestCreateGame(realtime = False,
-                random_seed = self.seed,
-                local_map=sc_pb.LocalMap(map_path=self._map.path, map_data=self._run_config.map_data(self._map.path)))
+        create = sc_pb.RequestCreateGame(realtime=False,
+                                         random_seed=self.seed,
+                                         local_map=sc_pb.LocalMap(map_path=self._map.path,
+                                                                  map_data=self._run_config.map_data(self._map.path)))
         create.player_setup.add(type=sc_pb.Participant)
         create.player_setup.add(type=sc_pb.Computer, race=races[self._bot_race],
                                 difficulty=difficulties[self.difficulty])
@@ -446,8 +450,8 @@ class SC2(MultiAgentEnv):
         except protocol.ConnectionError:
             self.full_restart()
 
-        #print(self.controller.query(q_pb.RequestQuery(abilities=[q_pb.RequestQueryAvailableAbilities(unit_tag=self.agents[0].tag)])))
-        #print(self.controller.data_raw())
+        # print(self.controller.query(q_pb.RequestQuery(abilities=[q_pb.RequestQueryAvailableAbilities(unit_tag=self.agents[0].tag)])))
+        # print(self.controller.data_raw())
 
         return self.get_obs(), self.get_state()
 
@@ -487,7 +491,7 @@ class SC2(MultiAgentEnv):
             else:
                 agent_action = self.get_agent_action_heuristic(a_id, action)
             if agent_action:
-              sc_actions.append(agent_action)
+                sc_actions.append(agent_action)
         # Send action request
         req_actions = sc_pb.RequestAction(actions=sc_actions)
 
@@ -563,51 +567,51 @@ class SC2(MultiAgentEnv):
             # no-op (valid only when dead)
             assert unit.health == 0, "No-op chosen but the agent's unit is not dead"
             if self.debug_inputs:
-                print("Agent %d: Dead"% a_id)
+                print("Agent %d: Dead" % a_id)
             return None
         elif action == 1:
             # stop
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_stop_id,
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_stop_id,
+                                            unit_tags=[tag],
+                                            queue_command=False)
             if self.debug_inputs:
-                print("Agent %d: Stop"% a_id)
+                print("Agent %d: Stop" % a_id)
 
         elif action == 2:
             # north
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_move_id,
-                    target_world_space_pos = sc_common.Point2D(x = x, y = y + self._move_amount),
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_move_id,
+                                            target_world_space_pos=sc_common.Point2D(x=x, y=y + self._move_amount),
+                                            unit_tags=[tag],
+                                            queue_command=False)
             if self.debug_inputs:
-                print("Agent %d: North"% a_id)
+                print("Agent %d: North" % a_id)
 
         elif action == 3:
             # south
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_move_id,
-                    target_world_space_pos = sc_common.Point2D(x = x, y = y - self._move_amount),
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_move_id,
+                                            target_world_space_pos=sc_common.Point2D(x=x, y=y - self._move_amount),
+                                            unit_tags=[tag],
+                                            queue_command=False)
             if self.debug_inputs:
-                print("Agent %d: South"% a_id)
+                print("Agent %d: South" % a_id)
 
         elif action == 4:
             # east
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_move_id,
-                    target_world_space_pos = sc_common.Point2D(x = x + self._move_amount, y = y),
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_move_id,
+                                            target_world_space_pos=sc_common.Point2D(x=x + self._move_amount, y=y),
+                                            unit_tags=[tag],
+                                            queue_command=False)
             if self.debug_inputs:
-                print("Agent %d: East"% a_id)
+                print("Agent %d: East" % a_id)
 
         elif action == 5:
             # west
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_move_id,
-                    target_world_space_pos = sc_common.Point2D(x = x - self._move_amount, y = y),
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_move_id,
+                                            target_world_space_pos=sc_common.Point2D(x=x - self._move_amount, y=y),
+                                            unit_tags=[tag],
+                                            queue_command=False)
             if self.debug_inputs:
-                print("Agent %d: West"% a_id)
+                print("Agent %d: West" % a_id)
         else:
             # attack/heal units that are in range
             target_id = action - self.n_actions_no_attack
@@ -619,10 +623,10 @@ class SC2(MultiAgentEnv):
                 action_id = action_attack_id
             target_tag = target_unit.tag
 
-            cmd = r_pb.ActionRawUnitCommand(ability_id = action_id,
-                    target_unit_tag = target_tag,
-                    unit_tags = [tag],
-                    queue_command = False)
+            cmd = r_pb.ActionRawUnitCommand(ability_id=action_id,
+                                            target_unit_tag=target_tag,
+                                            unit_tags=[tag],
+                                            queue_command=False)
 
             if self.debug_inputs:
                 print("Agent %d attacks enemy # %d" % (a_id, target_id))
@@ -638,10 +642,10 @@ class SC2(MultiAgentEnv):
         target_tag = self.enemies[self.heuristic_targets[a_id]].tag
         action_id = action_attack_id
 
-        cmd = r_pb.ActionRawUnitCommand(ability_id = action_id,
-                target_unit_tag = target_tag,
-                unit_tags = [tag],
-                queue_command = False)
+        cmd = r_pb.ActionRawUnitCommand(ability_id=action_id,
+                                        target_unit_tag=target_tag,
+                                        unit_tags=[tag],
+                                        queue_command=False)
 
         sc_action = sc_pb.Action(action_raw=r_pb.ActionRaw(unit_command=cmd))
         return sc_action
@@ -664,10 +668,14 @@ class SC2(MultiAgentEnv):
 
         if self.debug_rewards:
             for al_id in range(self.n_agents):
-                print("Agent %d: diff HP = %.f, diff shield = %.f" % (al_id, self.previous_agent_units[al_id].health - self.agents[al_id].health, self.previous_agent_units[al_id].shield - self.agents[al_id].shield))
+                print("Agent %d: diff HP = %.f, diff shield = %.f" % (
+                al_id, self.previous_agent_units[al_id].health - self.agents[al_id].health,
+                self.previous_agent_units[al_id].shield - self.agents[al_id].shield))
             print('---------------------')
             for al_id in range(self.n_enemies):
-                print("Enemy %d: diff HP = %.f, diff shield = %.f" % (al_id, self.previous_enemy_units[al_id].health - self.enemies[al_id].health, self.previous_enemy_units[al_id].shield - self.enemies[al_id].shield))
+                print("Enemy %d: diff HP = %.f, diff shield = %.f" % (
+                al_id, self.previous_enemy_units[al_id].health - self.enemies[al_id].health,
+                self.previous_enemy_units[al_id].shield - self.enemies[al_id].shield))
 
         # update deaths
         for al_id, al_unit in self.agents.items():
@@ -704,7 +712,7 @@ class SC2(MultiAgentEnv):
                 print("--------------------------")
 
             reward = delta_enemy + delta_deaths
-            reward = abs(reward) # shield regeration
+            reward = abs(reward)  # shield regeration
         else:
             if self.debug_rewards:
                 print("--------------------------")
@@ -760,26 +768,26 @@ class SC2(MultiAgentEnv):
 
     def unit_max_shield(self, unit):
 
-        if unit.unit_type == 74 or unit.unit_type == self.stalker_id: # Protoss's Stalker
+        if unit.unit_type == 74 or unit.unit_type == self.stalker_id:  # Protoss's Stalker
             return 80
-        if unit.unit_type == 73 or unit.unit_type == self.zealot_id: # Protoss's Zaelot
+        if unit.unit_type == 73 or unit.unit_type == self.zealot_id:  # Protoss's Zaelot
             return 50
-        if unit.unit_type == 77 or unit.unit_type == self.sentry_id: # Protoss's Sentry
+        if unit.unit_type == 77 or unit.unit_type == self.sentry_id:  # Protoss's Sentry
             return 40
-        if unit.unit_type == 4 or unit.unit_type == self.colossus_id: # Protoss's Colossus
+        if unit.unit_type == 4 or unit.unit_type == self.colossus_id:  # Protoss's Colossus
             return 150
 
     def can_move(self, unit, direction):
 
         m = self._move_amount / 2
 
-        if direction == 0: # north
+        if direction == 0:  # north
             x, y = int(unit.pos.x), int(unit.pos.y + m)
-        elif direction == 1: # south
+        elif direction == 1:  # south
             x, y = int(unit.pos.x), int(unit.pos.y - m)
-        elif direction == 2: # east
+        elif direction == 2:  # east
             x, y = int(unit.pos.x + m), int(unit.pos.y)
-        else : # west
+        else:  # west
             x, y = int(unit.pos.x - m), int(unit.pos.y)
 
         if self.pathing_grid[x, y] == 0:
@@ -796,7 +804,7 @@ class SC2(MultiAgentEnv):
 
         points = []
         for x in range(-r, r + 1):
-            Y = int(math.sqrt(abs(r*r-x*x))) # bound for y given x
+            Y = int(math.sqrt(abs(r * r - x * x)))  # bound for y given x
             for y in range(- Y, + Y + 1):
                 points.append((x_floor + x, y_floor + y))
         return points
@@ -821,7 +829,7 @@ class SC2(MultiAgentEnv):
         return points
 
     def check_bounds(self, x, y):
-        return x >= 0 and y >=0 and x < self.map_x and y < self.map_y
+        return x >= 0 and y >= 0 and x < self.map_x and y < self.map_y
 
     def get_surrounding_pathing(self, unit):
 
@@ -839,7 +847,7 @@ class SC2(MultiAgentEnv):
 
         unit = self.get_unit_by_id(agent_id)
 
-        move_feats = np.zeros(self.move_feats_len, dtype=np.float32) # exclude no-op & stop
+        move_feats = np.zeros(self.move_feats_len, dtype=np.float32)  # exclude no-op & stop
         enemy_feats = np.zeros((self.n_enemies, self.nf_en), dtype=np.float32)
         ally_feats = np.zeros((self.n_agents - 1, self.nf_al), dtype=np.float32)
         own_feats = np.zeros(self.nf_own, dtype=np.float32)
@@ -857,11 +865,11 @@ class SC2(MultiAgentEnv):
             ind = self.n_actions_move
 
             if self.obs_pathing_grid:
-                 move_feats[ind: ind + self.n_obs_pathing] = self.get_surrounding_pathing(unit)
-                 ind += self.n_obs_pathing
+                move_feats[ind: ind + self.n_obs_pathing] = self.get_surrounding_pathing(unit)
+                ind += self.n_obs_pathing
 
             if self.obs_terrain_height:
-                 move_feats[ind:] = self.get_surrounding_height(unit)
+                move_feats[ind:] = self.get_surrounding_height(unit)
 
             # Enemy features
             for e_id, e_unit in self.enemies.items():
@@ -869,9 +877,9 @@ class SC2(MultiAgentEnv):
                 e_y = e_unit.pos.y
                 dist = self.distance(x, y, e_x, e_y)
 
-                if dist < sight_range and e_unit.health > 0: # visible and alive
+                if dist < sight_range and e_unit.health > 0:  # visible and alive
 
-                    if self.obs_id_encoding == "rnn":
+                    if self.obs_id_encoding == "metamix":
 
                         self.obs_set(category="id", val=e_id, obs=enemy_feats[e_id], obs_type="enemy")
                         if dist < sight_range:
@@ -886,12 +894,15 @@ class SC2(MultiAgentEnv):
                                                      obs_type="enemy",
                                                      category="attackable")
 
-                    self.obs_set(category="distance_sc2", val=dist / sight_range, obs=enemy_feats[e_id], obs_type="enemy")
+                    self.obs_set(category="distance_sc2", val=dist / sight_range, obs=enemy_feats[e_id],
+                                 obs_type="enemy")
                     self.obs_set(category="x_sc2", val=(e_x - x) / sight_range, obs=enemy_feats[e_id], obs_type="enemy")
                     self.obs_set(category="y_sc2", val=(e_y - y) / sight_range, obs=enemy_feats[e_id], obs_type="enemy")
 
-                    if self.obs_id_encoding == "rnn":
-                        self.obs_set(category="unit_global", val=self.get_unit_type_id_metamix(e_unit, False, self.min_unit_type) + 1, obs=enemy_feats[e_id], obs_type="enemy")
+                    if self.obs_id_encoding == "metamix":
+                        self.obs_set(category="unit_global",
+                                     val=self.get_unit_type_id_metamix(e_unit, False, self.min_unit_type) + 1,
+                                     obs=enemy_feats[e_id], obs_type="enemy")
 
                     if self.obs_all_health:
                         self.obs_set(category="health", val=e_unit.health / e_unit.health_max, obs=enemy_feats[e_id],
@@ -904,7 +915,8 @@ class SC2(MultiAgentEnv):
 
                     if self.unit_type_bits > 0:
                         type_id = self.get_unit_type_id(e_unit, False)
-                        self.obs_set(category="unit_local", val=np.eye(self.unit_type_bits)[type_id], obs=enemy_feats[e_id], obs_type="enemy")
+                        self.obs_set(category="unit_local", val=np.eye(self.unit_type_bits)[type_id],
+                                     obs=enemy_feats[e_id], obs_type="enemy")
 
             # Ally features
             al_ids = [al_id for al_id in range(self.n_agents) if al_id != agent_id]
@@ -914,10 +926,10 @@ class SC2(MultiAgentEnv):
                 al_x = al_unit.pos.x
                 al_y = al_unit.pos.y
                 dist = self.distance(x, y, al_x, al_y)
-        
-                if dist < sight_range and al_unit.health > 0: # visible and alive
 
-                    if self.obs_id_encoding == "rnn":
+                if dist < sight_range and al_unit.health > 0:  # visible and alive
+
+                    if self.obs_id_encoding == "metamix":
                         self.obs_set(category="id", val=al_id, obs=ally_feats[i],
                                      obs_type="ally")  # NEW: have to do this for grid-based input!
 
@@ -926,8 +938,10 @@ class SC2(MultiAgentEnv):
                     self.obs_set(category="x_sc2", val=(al_x - x) / sight_range, obs=ally_feats[i], obs_type="ally")
                     self.obs_set(category="y_sc2", val=(al_y - y) / sight_range, obs=ally_feats[i], obs_type="ally")
 
-                    if self.obs_id_encoding == "rnn":
-                        self.obs_set(category="unit_global", val=self.get_unit_type_id_metamix(al_unit, True, self.min_unit_type) + 1, obs=ally_feats[i], obs_type="ally")
+                    if self.obs_id_encoding == "metamix":
+                        self.obs_set(category="unit_global",
+                                     val=self.get_unit_type_id_metamix(al_unit, True, self.min_unit_type) + 1,
+                                     obs=ally_feats[i], obs_type="ally")
 
                     if self.obs_all_health:
                         self.obs_set(category="health", val=al_unit.health / al_unit.health_max, obs=ally_feats[i],
@@ -940,7 +954,8 @@ class SC2(MultiAgentEnv):
 
                     if self.unit_type_bits > 0:
                         type_id = self.get_unit_type_id(al_unit, True)
-                        self.obs_set(category="unit_local", val=np.eye(self.unit_type_bits)[type_id], obs=ally_feats[i], obs_type="ally")
+                        self.obs_set(category="unit_local", val=np.eye(self.unit_type_bits)[type_id], obs=ally_feats[i],
+                                     obs_type="ally")
 
                     if self.obs_last_action:
                         self.obs_set(category="last_action", val=self.last_action[al_id], obs=ally_feats[i],
@@ -977,7 +992,7 @@ class SC2(MultiAgentEnv):
         #             enemy_feats[e_id, 1] = dist / sight_range # distance
         #             enemy_feats[e_id, 2] = (e_x - x) / sight_range # relative X
         #             enemy_feats[e_id, 3] = (e_y - y) / sight_range # relative Y
-        #             if self.obs_id_encoding == "rnn":
+        #             if self.obs_id_encoding == "metamix":
         #                 enemy_feats[e_id, 4] = self.get_unit_type_id_metamix(e_unit, False, self.min_unit_type) + 1
         #                 ind = 5
         #             else:
@@ -1010,7 +1025,7 @@ class SC2(MultiAgentEnv):
         #             ally_feats[i, 2] = (al_x - x) / sight_range # relative X
         #             ally_feats[i, 3] = (al_y - y) / sight_range # relative Y
         #
-        #             if self.obs_id_encoding == "rnn":
+        #             if self.obs_id_encoding == "metamix":
         #                 ally_feats[i, 4] = self.get_unit_type_id_metamix(al_unit, True, self.min_unit_type) + 1
         #                 ind = 5
         #             else:
@@ -1042,7 +1057,7 @@ class SC2(MultiAgentEnv):
         #             own_feats[ind] = unit.shield / max_shield
         #             ind += 1
         #
-        #     if self.obs_id_encoding == "rnn":
+        #     if self.obs_id_encoding == "metamix":
         #         own_feats[ind] = self.get_unit_type_id_metamix(unit, True, self.min_unit_type) + 1
         #         ind += 1
         #
@@ -1061,8 +1076,6 @@ class SC2(MultiAgentEnv):
             print("***************************************")
 
         # Optional: id channels, terrain channel, multiple occupancy, allied last action channel
-
-
 
         if self.obs_decoder is not None and self.obs_decoder.split("_")[0] == "grid":
             self.rasterise_grid(ally_feats,
@@ -1086,11 +1099,12 @@ class SC2(MultiAgentEnv):
                                         enemy_feats.flatten(),
                                         move_feats.flatten(),
                                         own_feats.flatten(),
-                                       ))
+                                        ))
             return agent_obs
 
     @staticmethod
-    def _grid_rasterise(ally_feats, enemy_feats, obs_grid_shape, obs_get, obs_set, to_grid_coords, from_grid_coords, debug=False):
+    def _grid_rasterise(ally_feats, enemy_feats, obs_grid_shape, obs_get, obs_set, to_grid_coords, from_grid_coords,
+                        debug=False):
         # will store
         width, height = obs_grid_shape
         for al_id, al_feat in enumerate(ally_feats):
@@ -1100,14 +1114,16 @@ class SC2(MultiAgentEnv):
                 x, y = to_grid_coords(x_sc2, y_sc2)
                 raster_x, raster_y = from_grid_coords(x, y)
                 if not debug:
-                    obs_set(category="distance_grid", val=(x**2 + y**2)**0.5, obs=al_feat, obs_type="ally")
+                    obs_set(category="distance_grid", val=(x ** 2 + y ** 2) ** 0.5, obs=al_feat, obs_type="ally")
                     obs_set(category="x_grid", val=x, obs=al_feat, obs_type="ally")
                     obs_set(category="y_grid", val=y, obs=al_feat, obs_type="ally")
-                    obs_set(category="distance_sc2_raster", val=(raster_x**2 + raster_y**2)**0.5, obs=al_feat, obs_type="ally")
+                    obs_set(category="distance_sc2_raster", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=al_feat,
+                            obs_type="ally")
                     obs_set(category="x_sc2_raster", val=raster_x, obs=al_feat, obs_type="ally")
                     obs_set(category="y_sc2_raster", val=raster_y, obs=al_feat, obs_type="ally")
                 else:
-                    obs_set(category="distance_sc2", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=al_feat, obs_type="ally")
+                    obs_set(category="distance_sc2", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=al_feat,
+                            obs_type="ally")
                     obs_set(category="x_sc2", val=raster_x, obs=al_feat, obs_type="ally")
                     obs_set(category="y_sc2", val=raster_y, obs=al_feat, obs_type="ally")
 
@@ -1118,14 +1134,16 @@ class SC2(MultiAgentEnv):
                 x, y = to_grid_coords(x_sc2, y_sc2)
                 raster_x, raster_y = from_grid_coords(x, y)
                 if not debug:
-                    obs_set(category="distance_grid", val=(x**2 + y**2)**0.5, obs=en_feat, obs_type="enemy")
+                    obs_set(category="distance_grid", val=(x ** 2 + y ** 2) ** 0.5, obs=en_feat, obs_type="enemy")
                     obs_set(category="x_grid", val=x, obs=en_feat, obs_type="enemy")
                     obs_set(category="y_grid", val=y, obs=en_feat, obs_type="enemy")
-                    obs_set(category="distance_sc2_raster", val=(raster_x**2 + raster_y**2)**0.5, obs=en_feat, obs_type="enemy")
+                    obs_set(category="distance_sc2_raster", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=en_feat,
+                            obs_type="enemy")
                     obs_set(category="x_sc2_raster", val=raster_x, obs=en_feat, obs_type="enemy")
                     obs_set(category="y_sc2_raster", val=raster_y, obs=en_feat, obs_type="enemy")
                 else:
-                    obs_set(category="distance_sc2", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=en_feat, obs_type="enemy")
+                    obs_set(category="distance_sc2", val=(raster_x ** 2 + raster_y ** 2) ** 0.5, obs=en_feat,
+                            obs_type="enemy")
                     obs_set(category="x_sc2", val=raster_x, obs=en_feat, obs_type="enemy")
                     obs_set(category="y_sc2", val=raster_y, obs=en_feat, obs_type="enemy")
 
@@ -1158,9 +1176,9 @@ class SC2(MultiAgentEnv):
     #
     #     return ally_feats, enemy_feats
 
-
     @staticmethod
-    def _multiple_occupancy(ally_feats, enemy_feats, obs_grid_shape, obs_get, obs_set, to_grid_coords, from_grid_coords, debug):  # deal with multiple occupancy
+    def _multiple_occupancy(ally_feats, enemy_feats, obs_grid_shape, obs_get, obs_set, to_grid_coords, from_grid_coords,
+                            debug):  # deal with multiple occupancy
         """
         Resolve multiple occupancy trouble from grid rep
 
@@ -1203,19 +1221,20 @@ class SC2(MultiAgentEnv):
                         yield pos
             pass
 
-        #import numpy as np
-        #dbg_grid = np.zeros((width, height))
-        #for k, v in pos_hash.items():
+        # import numpy as np
+        # dbg_grid = np.zeros((width, height))
+        # for k, v in pos_hash.items():
         #    dbg_grid[int(k[0]), int(k[1])] = len(v)
-        #print(dbg_grid)
+        # print(dbg_grid)
 
-        def _pref_sort(lst, obs_id_encoding = "rnn"):
-            assert obs_id_encoding == "rnn", "not implemented!"
+        def _pref_sort(lst, obs_id_encoding="metamix"):
+            assert obs_id_encoding == "metamix", "not implemented!"
             # arrange elements such that the one least critical to be relocated is popped first
-            allegiance_dict = {"ally":0, "enemy":1}
-            type_dict = {1: 0, 2: 0, 3: 1} # prioritise long range units to be relocated (1: short range unit)
+            allegiance_dict = {"ally": 0, "enemy": 1}
+            type_dict = {1: 0, 2: 0, 3: 1}  # prioritise long range units to be relocated (1: short range unit)
             try:
-                tmp = sorted(lst, key=lambda row: type_dict[int(obs_get(category="unit_global", obs=row["feat"], obs_type="enemy"))], reverse=True)
+                tmp = sorted(lst, key=lambda row: type_dict[
+                    int(obs_get(category="unit_global", obs=row["feat"], obs_type="enemy"))], reverse=True)
             except Exception as e:
                 a = 4
                 pass
@@ -1244,19 +1263,22 @@ class SC2(MultiAgentEnv):
                                                                   coord[1])
                             dist_raster = (x_raster ** 2 + y_raster ** 2) ** 0.5
                             feats = ally_feats if unit["utype"] == "ally" else enemy_feats
-                            obs_set(category="distance_sc2_raster", val=dist_raster, obs=feats[unit["id"]], obs_type=unit["utype"])
-                            obs_set(category="x_sc2_raster", val=x_raster, obs=feats[unit["id"]], obs_type=unit["utype"])
-                            obs_set(category="y_sc2_raster", val=y_raster, obs=feats[unit["id"]], obs_type=unit["utype"])
+                            obs_set(category="distance_sc2_raster", val=dist_raster, obs=feats[unit["id"]],
+                                    obs_type=unit["utype"])
+                            obs_set(category="x_sc2_raster", val=x_raster, obs=feats[unit["id"]],
+                                    obs_type=unit["utype"])
+                            obs_set(category="y_sc2_raster", val=y_raster, obs=feats[unit["id"]],
+                                    obs_type=unit["utype"])
                             obs_set(category="distance_grid", val=dist, obs=feats[unit["id"]], obs_type=unit["utype"])
                             obs_set(category="x_grid", val=x, obs=feats[unit["id"]], obs_type=unit["utype"])
                             obs_set(category="y_grid", val=y, obs=feats[unit["id"]], obs_type=unit["utype"])
                         break
 
-        #import numpy as np
-        #dbg_grid = np.zeros((width, height))
-        #for k, v in pos_hash.items():
+        # import numpy as np
+        # dbg_grid = np.zeros((width, height))
+        # for k, v in pos_hash.items():
         #    dbg_grid[int(k[0]), int(k[1])] = len(v)
-        #print(dbg_grid)
+        # print(dbg_grid)
 
         return ally_feats, enemy_feats
 
@@ -1271,8 +1293,8 @@ class SC2(MultiAgentEnv):
                        device=None):
         n_channels = 5
 
-        ally_feats_batch = ally_feats.contiguous().view(-1, n_agents-1, ally_feats.shape[-1]//(n_agents-1))
-        enemy_feats_batch = enemy_feats.contiguous().view(-1, n_enemies, enemy_feats.shape[-1]//n_enemies)
+        ally_feats_batch = ally_feats.contiguous().view(-1, n_agents - 1, ally_feats.shape[-1] // (n_agents - 1))
+        enemy_feats_batch = enemy_feats.contiguous().view(-1, n_enemies, enemy_feats.shape[-1] // n_enemies)
 
         channels = ally_feats_batch.new(ally_feats_batch.shape[0], n_channels, width, height).zero_()
 
@@ -1302,22 +1324,22 @@ class SC2(MultiAgentEnv):
         ctr += ally_feats_size
         obs_dict["enemies"] = obs[..., ctr:ctr + enemy_feats_size].view(*obs.shape[:-1], n_enemies, nf_en)
         ctr += enemy_feats_size
-        obs_dict["move"] = obs[...,ctr:ctr + move_feats_len]
+        obs_dict["move"] = obs[..., ctr:ctr + move_feats_len]
         ctr += move_feats_len
         obs_dict["own"] = obs[..., ctr:]
         return obs_dict
 
     @staticmethod
     def _create_channels__slow(label,
-                         obs,
-                         obs_grid_shape,
-                         n_allies,
-                         n_enemies,
-                         obs_set,
-                         obs_get,
-                         to_grid_coords,
-                         from_grid_coords,
-                         obs_explode):
+                               obs,
+                               obs_grid_shape,
+                               n_allies,
+                               n_enemies,
+                               obs_set,
+                               obs_get,
+                               to_grid_coords,
+                               from_grid_coords,
+                               obs_explode):
 
         obs_dict = obs_explode(obs)
 
@@ -1334,7 +1356,8 @@ class SC2(MultiAgentEnv):
                 x_grid = obs_get(category="x_grid", obs=feat, obs_type="ally")
                 y_grid = obs_get(category="y_grid", obs=feat, obs_type="ally")
                 visible = obs_get(category="visible", obs=feat, obs_type="ally")
-                grid_flat = (unit_global-1)*obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                grid_flat = (unit_global - 1) * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[
+                    0] + x_grid
                 channels_flat_grid.scatter_(-1, grid_flat.long(), visible)
 
             for _id in range(obs_dict["enemies"].shape[-2]):
@@ -1343,7 +1366,8 @@ class SC2(MultiAgentEnv):
                 x_grid = obs_get(category="x_grid", obs=feat, obs_type="enemy")
                 y_grid = obs_get(category="y_grid", obs=feat, obs_type="enemy")
                 visible = obs_get(category="visible", obs=feat, obs_type="enemy")
-                grid_flat = (unit_global-1) * obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                grid_flat = (unit_global - 1) * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[
+                    0] + x_grid
                 channels_flat_grid.scatter_(-1, grid_flat.long(), visible)
 
             return channels
@@ -1368,7 +1392,7 @@ class SC2(MultiAgentEnv):
                 x_grid = obs_get(category="x_grid", obs=feat, obs_type="enemy")
                 y_grid = obs_get(category="y_grid", obs=feat, obs_type="enemy")
                 visible = obs_get(category="visible", obs=feat, obs_type="enemy")
-                grid_flat = obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                grid_flat = obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
                 channels_flat_grid.scatter_(-1, grid_flat.long(), visible)
             return channels
 
@@ -1385,7 +1409,7 @@ class SC2(MultiAgentEnv):
                 visible = obs_get(category="visible", obs=feat, obs_type="ally")
                 unit_id = obs_get(category="id", obs=feat, obs_type="ally") + 1
                 grid_flat = y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat.long(), visible*unit_id)
+                channels_flat_grid.scatter_(-1, grid_flat.long(), visible * unit_id)
 
             for _id in range(obs_dict["enemies"].shape[-2]):
                 feat = obs_dict["enemies"][..., _id, :]
@@ -1393,8 +1417,8 @@ class SC2(MultiAgentEnv):
                 y_grid = obs_get(category="y_grid", obs=feat, obs_type="enemy")
                 visible = obs_get(category="visible", obs=feat, obs_type="enemy")
                 unit_id = obs_get(category="id", obs=feat, obs_type="enemy") + 1
-                grid_flat = obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat.long(), visible*unit_id)
+                grid_flat = obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                channels_flat_grid.scatter_(-1, grid_flat.long(), visible * unit_id)
             return channels
 
         elif label == "precise_pos":
@@ -1410,10 +1434,10 @@ class SC2(MultiAgentEnv):
                 x_sc2 = obs_get(category="x_sc2", obs=feat, obs_type="ally")
                 y_sc2 = obs_get(category="y_sc2", obs=feat, obs_type="ally")
                 visible = obs_get(category="visible", obs=feat, obs_type="ally")
-                grid_flat_x = 0*obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                grid_flat_y = 1*obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat_x.long(), visible*x_sc2)
-                channels_flat_grid.scatter_(-1, grid_flat_y.long(), visible*y_sc2)
+                grid_flat_x = 0 * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                grid_flat_y = 1 * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                channels_flat_grid.scatter_(-1, grid_flat_x.long(), visible * x_sc2)
+                channels_flat_grid.scatter_(-1, grid_flat_y.long(), visible * y_sc2)
 
             for _id in range(obs_dict["enemies"].shape[-2]):
                 feat = obs_dict["enemies"][..., _id, :]
@@ -1422,10 +1446,10 @@ class SC2(MultiAgentEnv):
                 x_sc2 = obs_get(category="x_sc2", obs=feat, obs_type="enemy")
                 y_sc2 = obs_get(category="y_sc2", obs=feat, obs_type="enemy")
                 visible = obs_get(category="visible", obs=feat, obs_type="enemy")
-                grid_flat_x = 2*obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                grid_flat_y = 3*obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat_x.long(), visible*x_sc2)
-                channels_flat_grid.scatter_(-1, grid_flat_y.long(), visible*y_sc2)
+                grid_flat_x = 2 * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                grid_flat_y = 3 * obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                channels_flat_grid.scatter_(-1, grid_flat_x.long(), visible * x_sc2)
+                channels_flat_grid.scatter_(-1, grid_flat_y.long(), visible * y_sc2)
 
             return channels
 
@@ -1442,7 +1466,7 @@ class SC2(MultiAgentEnv):
                 visible = obs_get(category="visible", obs=feat, obs_type="ally")
                 health = obs_get(category="health", obs=feat, obs_type="ally")
                 grid_flat = y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat.long(), visible*health)
+                channels_flat_grid.scatter_(-1, grid_flat.long(), visible * health)
 
             for _id in range(obs_dict["enemies"].shape[-2]):
                 feat = obs_dict["enemies"][..., _id, :]
@@ -1450,8 +1474,8 @@ class SC2(MultiAgentEnv):
                 y_grid = obs_get(category="y_grid", obs=feat, obs_type="enemy")
                 visible = obs_get(category="visible", obs=feat, obs_type="enemy")
                 health = obs_get(category="health", obs=feat, obs_type="ally")
-                grid_flat = obs_grid_shape[0]*obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
-                channels_flat_grid.scatter_(-1, grid_flat.long(), visible*health)
+                grid_flat = obs_grid_shape[0] * obs_grid_shape[1] + y_grid * obs_grid_shape[0] + x_grid
+                channels_flat_grid.scatter_(-1, grid_flat.long(), visible * health)
             return channels
 
         pass
@@ -1492,33 +1516,36 @@ class SC2(MultiAgentEnv):
         cache["visible_enemy"] = visible_enemy
         cache["grid_coords_flat_ally"] = grid_coords_flat_ally
         cache["grid_coords_flat_enemy"] = grid_coords_flat_enemy
-        cache["grid_coords_flat"] = th.cat([grid_coords_flat_ally, grid_coords_flat_enemy], dim=-2).view(*grid_coords_flat_ally.shape[:-2],
-                                                                                                         -1)
+        cache["grid_coords_flat"] = th.cat([grid_coords_flat_ally, grid_coords_flat_enemy], dim=-2).view(
+            *grid_coords_flat_ally.shape[:-2],
+            -1)
         cache["x_grid"] = th.cat([cache["x_grid_ally"], cache["x_grid_enemy"]], dim=-2)
         cache["y_grid"] = th.cat([cache["y_grid_ally"], cache["y_grid_enemy"]], dim=-2)
         cache["y_grid"] = th.cat([cache["y_grid_ally"], cache["y_grid_enemy"]], dim=-2)
-        cache["visible"] = th.cat([cache["visible_ally"], cache["visible_enemy"]], dim=-2).view(*cache["visible_ally"].shape[:-2],
-                                                                                                         -1)
+        cache["visible"] = th.cat([cache["visible_ally"], cache["visible_enemy"]], dim=-2).view(
+            *cache["visible_ally"].shape[:-2],
+            -1)
         cache["ally_enemy_mask"] = cache["x_grid"].clone().zero_()
-        cache["ally_enemy_mask"][..., obs_dict["allies"].shape[-2]:, :] = 1 # enemies are 1 in this mask, allies zero
+        cache["ally_enemy_mask"][..., obs_dict["allies"].shape[-2]:, :] = 1  # enemies are 1 in this mask, allies zero
         cache["ally_enemy_mask"] = cache["ally_enemy_mask"].view(*cache["ally_enemy_mask"].shape[:-2],
                                                                  -1)
 
         # calculate and assign empty memory for all channels
-        dim_channels_dict = {"unit_type": {"uncompressed":10, "compressed":10},
-                             "ally_or_enemy": {"uncompressed":2, "compressed":1},
-                             "id": {"uncompressed":2, "compressed":1},
-                             "precise_pos": {"uncompressed":4, "compressed":2},
-                             "health": {"uncompressed":2, "compressed":1},
-                             "last_action": {"uncompressed":2, "compressed":2},
-                             "attackable": {"uncompressed":1, "compressed":1}}
+        dim_channels_dict = {"unit_type": {"uncompressed": 10, "compressed": 10},
+                             "ally_or_enemy": {"uncompressed": 2, "compressed": 1},
+                             "id": {"uncompressed": 2, "compressed": 1},
+                             "precise_pos": {"uncompressed": 4, "compressed": 2},
+                             "health": {"uncompressed": 2, "compressed": 1},
+                             "last_action": {"uncompressed": 2, "compressed": 2},
+                             "attackable": {"uncompressed": 1, "compressed": 1}}
 
         n_channels = sum([dim_channels_dict[label["type"]][label.get("mode", "uncompressed")] for label in label_lst])
 
         channels_slice_dict = {}
         ctr = 0
         for label in label_lst:
-            channels_slice_dict[label["type"]] = slice(ctr, ctr + dim_channels_dict[label["type"]][label.get("mode", "uncompressed")])
+            channels_slice_dict[label["type"]] = slice(ctr, ctr + dim_channels_dict[label["type"]][
+                label.get("mode", "uncompressed")])
             ctr += dim_channels_dict[label["type"]][label.get("mode", "uncompressed")]
 
         channels = obs.new(*obs.shape[:-1], n_channels, *obs_grid_shape).zero_()
@@ -1526,7 +1553,6 @@ class SC2(MultiAgentEnv):
 
         if get_size_only:
             return channels
-
 
         for label in label_lst:
 
@@ -1539,11 +1565,13 @@ class SC2(MultiAgentEnv):
 
                 if not ("unit_global" in cache):
                     if not ("unit_global_allies" in cache):
-                        cache["unit_global_allies"] = obs_get(category="unit_global", obs=obs_dict["allies"], obs_type="ally").long()
+                        cache["unit_global_allies"] = obs_get(category="unit_global", obs=obs_dict["allies"],
+                                                              obs_type="ally").long()
                     unit_global_allies = cache["unit_global_allies"]
 
                     if not ("unit_global_enemies" in cache):
-                        cache["unit_global_enemies"] = obs_get(category="unit_global", obs=obs_dict["enemies"], obs_type="enemy").long()
+                        cache["unit_global_enemies"] = obs_get(category="unit_global", obs=obs_dict["enemies"],
+                                                               obs_type="enemy").long()
                     unit_global_enemies = cache["unit_global_enemies"]
 
                     cache["unit_global"] = th.cat([unit_global_allies, unit_global_enemies], dim=-2)
@@ -1555,7 +1583,7 @@ class SC2(MultiAgentEnv):
                 visible = cache["visible"]
 
                 # TODO: use diverse label types for units!
-                gcf = (label_slice.start + unit_global)*obs_grid_shape[0]*obs_grid_shape[1] + grid_coords_flat
+                gcf = (label_slice.start + unit_global) * obs_grid_shape[0] * obs_grid_shape[1] + grid_coords_flat
                 channels_flat_grid.scatter_(-1, gcf, visible)
 
             elif label_type == "ally_or_enemy":
@@ -1565,9 +1593,10 @@ class SC2(MultiAgentEnv):
 
                 if label_mode == "compressed":
                     gcf = grid_coords_flat + label_slice.start * obs_grid_shape[0] * obs_grid_shape[1]
-                    channels_flat_grid.scatter_(-1, gcf, visible*(ally_enemy_mask*2-1))
+                    channels_flat_grid.scatter_(-1, gcf, visible * (ally_enemy_mask * 2 - 1))
                 elif label_mode == "uncompressed":
-                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[
+                        1]
                     channels_flat_grid.scatter_(-1, gcf, visible)
 
             elif label_type == "id":
@@ -1590,11 +1619,12 @@ class SC2(MultiAgentEnv):
 
                 if label_mode == "compressed":
                     gcf = grid_coords_flat + label_slice.start * obs_grid_shape[0] * obs_grid_shape[1]
-                    channels_flat_grid.scatter_(-1, gcf, visible*((1-ally_enemy_mask)*2-1)*unit_id)
+                    channels_flat_grid.scatter_(-1, gcf, visible * ((1 - ally_enemy_mask) * 2 - 1) * unit_id)
 
                 elif label_mode == "uncompressed":
-                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[1]
-                    channels_flat_grid.scatter_(-1, gcf, visible*unit_id)
+                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[
+                        1]
+                    channels_flat_grid.scatter_(-1, gcf, visible * unit_id)
 
             elif label_type == "precise_pos":
 
@@ -1603,14 +1633,14 @@ class SC2(MultiAgentEnv):
                     cache["x_sc2_enemy"] = obs_get(category="x_sc2", obs=obs_dict["enemies"], obs_type="enemy")
                     cache["x_sc2"] = th.cat([cache["x_sc2_ally"], cache["x_sc2_enemy"]], dim=-2)
                     cache["x_sc2"] = cache["x_sc2"].view(*cache["x_sc2"].shape[:-2],
-                                                             -1)
+                                                         -1)
 
                 if not ("y_sc2" in cache):
                     cache["y_sc2_ally"] = obs_get(category="y_sc2", obs=obs_dict["allies"], obs_type="ally")
                     cache["y_sc2_enemy"] = obs_get(category="y_sc2", obs=obs_dict["enemies"], obs_type="enemy")
                     cache["y_sc2"] = th.cat([cache["y_sc2_ally"], cache["y_sc2_enemy"]], dim=-2)
                     cache["y_sc2"] = cache["y_sc2"].view(*cache["y_sc2"].shape[:-2],
-                                                             -1)
+                                                         -1)
 
                 grid_coords_flat = cache["grid_coords_flat"]
                 visible = cache["visible"]
@@ -1618,40 +1648,43 @@ class SC2(MultiAgentEnv):
                 y_sc2 = cache["y_sc2"]
 
                 if label_mode == "compressed":
-                    gcf = grid_coords_flat +  label_slice.start * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + label_slice.start * obs_grid_shape[0] * obs_grid_shape[1]
                     channels_flat_grid.scatter_(-1, gcf, visible * x_sc2)
-                    gcf = grid_coords_flat +  1 * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + 1 * obs_grid_shape[0] * obs_grid_shape[1]
                     channels_flat_grid.scatter_(-1, gcf, visible * y_sc2)
 
                 elif label_mode == "uncompressed":
                     ally_enemy_mask = cache["ally_enemy_mask"]
-                    gcf = grid_coords_flat +  (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[
+                        1]
                     channels_flat_grid.scatter_(-1, gcf, visible * x_sc2)
-                    gcf = grid_coords_flat +  2 * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + 2 * obs_grid_shape[0] * obs_grid_shape[1]
                     channels_flat_grid.scatter_(-1, gcf, visible * y_sc2)
 
             elif label_type == "last_action":
 
                 if not ("last_action" in cache):
-                    cache["last_action_no_attack"] = obs_get(category="last_action", obs=obs_dict["allies"], obs_type="ally")
+                    cache["last_action_no_attack"] = obs_get(category="last_action", obs=obs_dict["allies"],
+                                                             obs_type="ally")
 
-                    cache["last_action_no_attack"] = cache["last_action_no_attack"].view(*grid_coords_flat_ally.shape[:-2],
-                                                             -1)
+                    cache["last_action_no_attack"] = cache["last_action_no_attack"].view(
+                        *grid_coords_flat_ally.shape[:-2],
+                        -1)
 
                 if not ("last_attacked_grid" in cache):
                     cache["last_attacked_grid"] = obs_get(category="health", obs=obs_dict["allies"], obs_type="ally")
                     cache["last_attacked_grid"] = cache["last_attacked_grid"].view(*grid_coords_flat_ally.shape[:-2],
-                                                             -1)
+                                                                                   -1)
 
                 grid_coords_flat = cache["grid_coords_flat"]
                 visible = cache["visible"]
                 last_action_no_attack = cache["last_action_no_attack"]
                 last_attacked_grid = cache["last_attacked_grid"]
 
-                if label_mode in ["compressed","uncompressed"]:
+                if label_mode in ["compressed", "uncompressed"]:
                     gcf = grid_coords_flat + label_slice.start * obs_grid_shape[0] * obs_grid_shape[1]
                     channels_flat_grid.scatter_(-1, gcf, visible * last_action_no_attack)
-                    channels[..., label_slice.start+1 , :, :] = last_attacked_grid
+                    channels[..., label_slice.start + 1, :, :] = last_attacked_grid
 
             elif label_type == "health":
 
@@ -1660,7 +1693,7 @@ class SC2(MultiAgentEnv):
                     cache["health_enemy"] = obs_get(category="health", obs=obs_dict["enemies"], obs_type="enemy")
                     cache["health"] = th.cat([cache["health_ally"], cache["health_enemy"]], dim=-2)
                     cache["health"] = cache["health"].view(*grid_coords_flat_ally.shape[:-2],
-                                                             -1)
+                                                           -1)
 
                 grid_coords_flat = cache["grid_coords_flat"]
                 visible = cache["visible"]
@@ -1672,11 +1705,11 @@ class SC2(MultiAgentEnv):
 
                 elif label_mode == "uncompressed":
                     ally_enemy_mask = cache["ally_enemy_mask"]
-                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[1]
+                    gcf = grid_coords_flat + (label_slice.start + ally_enemy_mask) * obs_grid_shape[0] * obs_grid_shape[
+                        1]
                     channels_flat_grid.scatter_(-1, gcf, visible * health)
 
         return channels
-
 
     @staticmethod
     def _grid_obs_metamix(obs, create_channels, scenario="metamix1", get_size_only=False):
@@ -1694,49 +1727,49 @@ class SC2(MultiAgentEnv):
 
         elif scenario == "metamix__3m":
 
-            label_lst = [{"type":"ally_or_enemy", "mode":"compressed"},
-                         {"type":"id", "mode":"compressed"},
-                         {"type":"health", "mode":"compressed"}]
+            label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "id", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels
 
         elif scenario == "metamix__3m_noid":
 
-            label_lst = [{"type":"ally_or_enemy", "mode":"compressed"},
-                         {"type":"last_action", "mode":"compressed"},
-                         {"type":"multiple_occupancy", "mode":"compressed"},
-                         {"type":"health", "mode":"compressed"}]
+            label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "last_action", "mode": "compressed"},
+                         {"type": "multiple_occupancy", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels
 
         elif scenario == "metamix__3m_precise":
-            label_lst = [{"type":"ally_or_enemy", "mode":"compressed"},
-                         {"type":"id", "mode":"compressed"},
-                         {"type":"health", "mode":"compressed"},
-                         {"type":"precise_pos", "mode":"compressed"}]
+            label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "id", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"},
+                         {"type": "precise_pos", "mode": "compressed"}]
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels
 
         elif scenario == "metamix__2s3z":
-            label_lst = [{"type":"unit_type", "mode":"compressed"},
-                         {"type":"ally_or_enemy", "mode":"compressed"},
-                         {"type":"id", "mode":"compressed"},
-                         {"type":"health", "mode":"compressed"}]
+            label_lst = [{"type": "unit_type", "mode": "compressed"},
+                         {"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "id", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             channels_out = th.cat([channels[..., 1:3, :, :],
-                                   channels[..., 10:, :, :]], dim=-3) # remove superfluous type channels
+                                   channels[..., 10:, :, :]], dim=-3)  # remove superfluous type channels
             return channels_out
 
         elif scenario == "metamix__2s3z_noid":
-            label_lst = [{"type":"unit_type", "mode":"compressed"},
-                         {"type":"ally_or_enemy", "mode":"compressed"},
+            label_lst = [{"type": "unit_type", "mode": "compressed"},
+                         {"type": "ally_or_enemy", "mode": "compressed"},
                          # {"type":"id", "mode":"compressed"},
-                         {"type":"last_action", "mode":"compressed"},
-                         #{"type":"multiple_occupancy", "mode":"compressed"},
-                         {"type":"health", "mode":"compressed"}]
+                         {"type": "last_action", "mode": "compressed"},
+                         # {"type":"multiple_occupancy", "mode":"compressed"},
+                         {"type": "health", "mode": "compressed"}]
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             channels_out = th.cat([channels[..., 1:3, :, :],
-                                   channels[..., 10:, :, :]], dim=-3) # remove superfluous type channels
+                                   channels[..., 10:, :, :]], dim=-3)  # remove superfluous type channels
             return channels_out
 
 
@@ -1784,18 +1817,18 @@ class SC2(MultiAgentEnv):
                 y = al_unit.pos.y
                 max_cd = self.unit_max_cooldown(al_id)
 
-                ally_state[al_id, 0] = al_unit.health / al_unit.health_max # health
+                ally_state[al_id, 0] = al_unit.health / al_unit.health_max  # health
                 if self.map_type == 'MMM' and al_unit.unit_type == self.medivac_id:
-                    ally_state[al_id, 1] = al_unit.energy / max_cd # energy
+                    ally_state[al_id, 1] = al_unit.energy / max_cd  # energy
                 else:
-                    ally_state[al_id, 1] = al_unit.weapon_cooldown / max_cd # cooldown
-                ally_state[al_id, 2] = (x - center_x) / self.max_distance_x # relative X
-                ally_state[al_id, 3] = (y - center_y) / self.max_distance_y # relative Y
+                    ally_state[al_id, 1] = al_unit.weapon_cooldown / max_cd  # cooldown
+                ally_state[al_id, 2] = (x - center_x) / self.max_distance_x  # relative X
+                ally_state[al_id, 3] = (y - center_y) / self.max_distance_y  # relative Y
 
                 ind = 4
                 if self.shield_bits_ally > 0:
                     max_shield = self.unit_max_shield(al_unit)
-                    ally_state[al_id, ind] = al_unit.shield / max_shield # shield
+                    ally_state[al_id, ind] = al_unit.shield / max_shield  # shield
                     ind += 1
 
                 if self.unit_type_bits > 0:
@@ -1807,14 +1840,14 @@ class SC2(MultiAgentEnv):
                 x = e_unit.pos.x
                 y = e_unit.pos.y
 
-                enemy_state[e_id, 0] = e_unit.health / e_unit.health_max # health
-                enemy_state[e_id, 1] = (x - center_x) / self.max_distance_x # relative X
-                enemy_state[e_id, 2] = (y - center_y) / self.max_distance_y # relative Y
+                enemy_state[e_id, 0] = e_unit.health / e_unit.health_max  # health
+                enemy_state[e_id, 1] = (x - center_x) / self.max_distance_x  # relative X
+                enemy_state[e_id, 2] = (y - center_y) / self.max_distance_y  # relative Y
 
                 ind = 3
                 if self.shield_bits_enemy > 0:
                     max_shield = self.unit_max_shield(e_unit)
-                    enemy_state[e_id, ind] = e_unit.shield / max_shield # shield
+                    enemy_state[e_id, ind] = e_unit.shield / max_shield  # shield
                     ind += 1
 
                 if self.unit_type_bits > 0:
@@ -1838,10 +1871,10 @@ class SC2(MultiAgentEnv):
     @staticmethod
     def get_unit_type_id_metamix(unit, ally, min_unit_type):
 
-        if ally: # we use new SC2 unit types
+        if ally:  # we use new SC2 unit types
             type_id = unit.unit_type - min_unit_type
 
-        else: # 'We use default SC2 unit types'
+        else:  # 'We use default SC2 unit types'
 
             # if self.map_type == 'sz':
             #     # id(Stalker) = 74, id(Zealot) = 73
@@ -1862,8 +1895,8 @@ class SC2(MultiAgentEnv):
             #     type_id = 0
 
             # unit ids coincide with self-made units
-            unit_id_dict = {48: 0, # marines
-                            74: 1, # stalkers
+            unit_id_dict = {48: 0,  # marines
+                            74: 1,  # stalkers
                             73: 2,  # zealots
                             }
             # TODO: extend for marines, stalkers, zealots, marauder, medivac, spine crawler, baneling, zergling, hydralisk, colossus
@@ -1873,10 +1906,10 @@ class SC2(MultiAgentEnv):
 
     def get_unit_type_id(self, unit, ally):
 
-        if ally: # we use new SC2 unit types
+        if ally:  # we use new SC2 unit types
             type_id = unit.unit_type - self.min_unit_type
 
-        else: # 'We use default SC2 unit types'
+        else:  # 'We use default SC2 unit types'
 
             if self.map_type == 'sz':
                 # id(Stalker) = 74, id(Zealot) = 73
@@ -1940,7 +1973,8 @@ class SC2(MultiAgentEnv):
             target_items = self.enemies.items()
             if self.map_type == 'MMM' and unit.unit_type == self.medivac_id:
                 # Medivacs cannot heal themselves and other flying units
-                target_items = [(t_id, t_unit) for (t_id, t_unit) in self.agents.items() if t_unit.unit_type != self.medivac_id]
+                target_items = [(t_id, t_unit) for (t_id, t_unit) in self.agents.items() if
+                                t_unit.unit_type != self.medivac_id]
 
             for t_id, t_unit in target_items:
                 if t_unit.health > 0:
@@ -1999,8 +2033,10 @@ class SC2(MultiAgentEnv):
 
     def kill_all_units(self):
 
-        units_alive = [unit.tag for unit in self.agents.values() if unit.health > 0] + [unit.tag for unit in self.enemies.values() if unit.health > 0]
-        debug_command = [d_pb.DebugCommand(kill_unit = d_pb.DebugKillUnit(tag = units_alive))]
+        units_alive = [unit.tag for unit in self.agents.values() if unit.health > 0] + [unit.tag for unit in
+                                                                                        self.enemies.values() if
+                                                                                        unit.health > 0]
+        debug_command = [d_pb.DebugCommand(kill_unit=d_pb.DebugKillUnit(tag=units_alive))]
         self.controller.debug(debug_command)
 
     def init_units(self):
@@ -2017,7 +2053,8 @@ class SC2(MultiAgentEnv):
             for i in range(len(ally_units_sorted)):
                 self.agents[i] = ally_units_sorted[i]
                 if self.debug_inputs:
-                    print("Unit %d is %d, x = %.1f, y = %1.f"  % (len(self.agents), self.agents[i].unit_type, self.agents[i].pos.x, self.agents[i].pos.y))
+                    print("Unit %d is %d, x = %.1f, y = %1.f" % (
+                    len(self.agents), self.agents[i].unit_type, self.agents[i].pos.x, self.agents[i].pos.y))
 
             for unit in self._obs.observation.raw_data.units:
                 if unit.owner == 2:
@@ -2062,7 +2099,7 @@ class SC2(MultiAgentEnv):
                     n_ally_alive += 1
                     break
 
-            if not updated: # means dead
+            if not updated:  # means dead
                 al_unit.health = 0
 
         for e_id, e_unit in self.enemies.items():
@@ -2074,7 +2111,7 @@ class SC2(MultiAgentEnv):
                     n_enemy_alive += 1
                     break
 
-            if not updated: # means dead
+            if not updated:  # means dead
                 e_unit.health = 0
 
         if self.heuristic:
@@ -2094,11 +2131,11 @@ class SC2(MultiAgentEnv):
                     self.heuristic_targets[al_id] = min_id
 
         if (n_ally_alive == 0 and n_enemy_alive > 0) or self.only_medivac_left(ally=True):
-            return -1 # loss
+            return -1  # loss
         if (n_ally_alive > 0 and n_enemy_alive == 0) or self.only_medivac_left(ally=False):
-            return 1 # win
+            return 1  # win
         if n_ally_alive == 0 and n_enemy_alive == 0:
-            return 0 # tie, not sure if this is possible
+            return 0  # tie, not sure if this is possible
 
         return None
 
@@ -2145,20 +2182,25 @@ class SC2(MultiAgentEnv):
         aggregate_stats = {}
         for _k, _v in current_stats.items():
             if _k in ["win_rate"]:
-                aggregate_stats[_k] = np.mean([ (_a - _b)/(_c - _d) for _a, _b, _c, _d in zip(current_stats["battles_won"],
-                                                                                              [0]*len(current_stats["battles_won"]) if self.last_stats is None else self.last_stats["battles_won"],
-                                                                                              current_stats["battles_game"],
-                                                                                              [0]*len(current_stats["battles_game"]) if self.last_stats is None else
-                                                                                              self.last_stats["battles_game"])
-                                                if (_c - _d) != 0.0])
+                aggregate_stats[_k] = np.mean(
+                    [(_a - _b) / (_c - _d) for _a, _b, _c, _d in zip(current_stats["battles_won"],
+                                                                     [0] * len(current_stats[
+                                                                                   "battles_won"]) if self.last_stats is None else
+                                                                     self.last_stats["battles_won"],
+                                                                     current_stats["battles_game"],
+                                                                     [0] * len(current_stats[
+                                                                                   "battles_game"]) if self.last_stats is None else
+                                                                     self.last_stats["battles_game"])
+                     if (_c - _d) != 0.0])
             else:
-                aggregate_stats[_k] = np.mean([_a-_b for _a, _b in zip(_v, [0]*len(_v) if self.last_stats is None else self.last_stats[_k])])
+                aggregate_stats[_k] = np.mean(
+                    [_a - _b for _a, _b in zip(_v, [0] * len(_v) if self.last_stats is None else self.last_stats[_k])])
 
         self.last_stats = current_stats
         return aggregate_stats
 
     @staticmethod
-    def state_decoder(state): # decode obs tensor into real shape
+    def state_decoder(state):  # decode obs tensor into real shape
         return state
 
     @staticmethod
@@ -2200,7 +2242,6 @@ class SC2(MultiAgentEnv):
                 if device is not None:
                     grid.to(device)
 
-
                 obs_dict = obs_explode(obs)
                 enemy_grid_x = obs_get(category="x_grid", obs=obs_dict["enemies"], obs_type="enemy").long()
                 enemy_grid_y = obs_get(category="y_grid", obs=obs_dict["enemies"], obs_type="enemy").long()
@@ -2214,24 +2255,27 @@ class SC2(MultiAgentEnv):
 
     @staticmethod
     def transformer_obs_decoder(obs,
-                    move_feat_size,
-                    own_feat_size,
-                    n_agents,
-                    nf_al,
-                    n_enemies,
-                    nf_en):  # decode obs tensor into real shape
+                                move_feat_size,
+                                own_feat_size,
+                                n_agents,
+                                nf_al,
+                                n_enemies,
+                                nf_en):  # decode obs tensor into real shape
 
         if obs is None:
-            return {"2d": [(n_agents-1, nf_al), (n_enemies, nf_en)],
+            return {"2d": [(n_agents - 1, nf_al), (n_enemies, nf_en)],
                     "1d": [move_feat_size + own_feat_size]}
         else:
-            al_2d = [slice(None)] * (obs.dim() - 1) + [slice(0, (n_agents-1)*nf_al)]
-            en_2d = [slice(None)] * (obs.dim() - 1) + [slice((n_agents-1)*nf_al, (n_agents-1)*nf_al + n_enemies*nf_en)]
-            move_1d = [slice(None)] * (obs.dim() - 1) + [slice((n_agents-1)*nf_al + n_enemies*nf_en,
-                                                               (n_agents-1)*nf_al + n_enemies*nf_en + move_feat_size)]
-            own_feat_1d = [slice(None)] * (obs.dim() - 1) + [slice((n_agents-1) * nf_al + n_enemies*nf_en + move_feat_size,
-                                                                   (n_agents-1) * nf_al + n_enemies * nf_en + move_feat_size + own_feat_size)]
-            features = {"2d": [obs[al_2d].view(*obs.shape[:-1], (n_agents-1), nf_al).to(obs.device),
+            al_2d = [slice(None)] * (obs.dim() - 1) + [slice(0, (n_agents - 1) * nf_al)]
+            en_2d = [slice(None)] * (obs.dim() - 1) + [
+                slice((n_agents - 1) * nf_al, (n_agents - 1) * nf_al + n_enemies * nf_en)]
+            move_1d = [slice(None)] * (obs.dim() - 1) + [slice((n_agents - 1) * nf_al + n_enemies * nf_en,
+                                                               (
+                                                                           n_agents - 1) * nf_al + n_enemies * nf_en + move_feat_size)]
+            own_feat_1d = [slice(None)] * (obs.dim() - 1) + [
+                slice((n_agents - 1) * nf_al + n_enemies * nf_en + move_feat_size,
+                      (n_agents - 1) * nf_al + n_enemies * nf_en + move_feat_size + own_feat_size)]
+            features = {"2d": [obs[al_2d].view(*obs.shape[:-1], (n_agents - 1), nf_al).to(obs.device),
                                obs[en_2d].view(*obs.shape[:-1], n_enemies, nf_en).to(obs.device)],
                         "1d": [th.cat([obs[move_1d].to(obs.device),
                                        obs[own_feat_1d].to(obs.device)], dim=-1)]
@@ -2271,7 +2315,8 @@ class SC2(MultiAgentEnv):
 
         grid_flat_enemy = y_grid_enemy * obs_grid_shape[0] + x_grid_enemy
         grid_flat_enemy = grid_flat_enemy.view(*grid_flat_enemy.shape[:-2], -1)
-        grid_actions_attack = grid_actions[..., n_actions_no_attack:] # .contiguous().view(*grid_actions.shape[:-2], -1)
+        grid_actions_attack = grid_actions[...,
+                              n_actions_no_attack:]  # .contiguous().view(*grid_actions.shape[:-2], -1)
 
         mask = visible
         vals = grid_actions_attack.gather(-1, grid_flat_enemy) * mask + mask_val * (1.0 - mask)
@@ -2280,7 +2325,7 @@ class SC2(MultiAgentEnv):
         actions.scatter_(-1, id_enemy + n_actions_no_attack, vals)
 
         # very important: apply avail actions at the end!
-        out_actions = actions * avail_actions.float() + (1-avail_actions.float()) * mask_val
+        out_actions = actions * avail_actions.float() + (1 - avail_actions.float()) * mask_val
         return out_actions
 
     @staticmethod
@@ -2305,7 +2350,8 @@ class SC2(MultiAgentEnv):
         action_is_attack = (actions_sc2 >= n_actions_no_attack)
 
         # select the flat grid indices that correspond to the agents that are being attacked
-        action_enemy_idx = grid_flat_enemy.squeeze(-1).gather(-1, ((actions_sc2 - n_actions_no_attack) * action_is_attack.long()))
+        action_enemy_idx = grid_flat_enemy.squeeze(-1).gather(-1, (
+                    (actions_sc2 - n_actions_no_attack) * action_is_attack.long()))
 
         # fill in the attack actions
         actions[..., 1, :, :].view(*actions.shape[:-3], -1).scatter_(-1, action_enemy_idx, action_is_attack.float())
@@ -2315,7 +2361,7 @@ class SC2(MultiAgentEnv):
         # action 0: leave all-zeros (no action)
 
         # action 1: fill in middle tile (stop action)
-        actions[..., 0, obs_grid_shape[0]//2, obs_grid_shape[1]//2][(actions_sc2==1).squeeze()] = 1.0
+        actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2][(actions_sc2 == 1).squeeze()] = 1.0
 
         # action 2: fill in the north tile (north)
         actions[..., 0, obs_grid_shape[0] // 2, obs_grid_shape[1] // 2 - 1][(actions_sc2 == 2).squeeze()] = 1.0
@@ -2331,8 +2377,8 @@ class SC2(MultiAgentEnv):
 
         return actions
 
-        #actions[..., 1, :, :].view(*actions.shape[:-3], -1).scatter_(-1, grid_flat_enemy, action_enemy_idx.float())
-        #actions[..., 0, :, :].view(*actions.shape[:-3], -1).scatter_(-1, grid_flat_enemy, 1.0 - action_is_attack)
+        # actions[..., 1, :, :].view(*actions.shape[:-3], -1).scatter_(-1, grid_flat_enemy, action_enemy_idx.float())
+        # actions[..., 0, :, :].view(*actions.shape[:-3], -1).scatter_(-1, grid_flat_enemy, 1.0 - action_is_attack)
 
         # actions = avail_actions.clone().float().zero_()
         #
@@ -2399,7 +2445,7 @@ class SC2(MultiAgentEnv):
                                             actions_sc2.shape[-2],
                                             grid_flat.shape[-1]
                                             ).gather(-1, (
-                    (actions_sc2 - n_actions_no_attack).long() * action_is_attack.long()))
+                (actions_sc2 - n_actions_no_attack).long() * action_is_attack.long()))
 
         # fill in the attack actions
         actions[..., 1, :, :].view(*actions.shape[:-3], -1).scatter_(-1, action_enemy_idx, action_is_attack.float())
@@ -2425,7 +2471,6 @@ class SC2(MultiAgentEnv):
         actions[..., 0, obs_grid_shape[0] // 2 - 1, obs_grid_shape[1] // 2][(actions_sc2 == 5).squeeze(-1)] = 1.0
 
         return actions
-
 
     @staticmethod
     def _to_grid_coords(x, y, obs_grid_shape, x_lims=(-1.0, 1.0), y_lims=(-1.0, 1.0)):
@@ -2504,7 +2549,8 @@ class SC2(MultiAgentEnv):
                                    scenario="_".join(self.obs_decoder.split("_")[1:]),
                                    create_channels=self.create_channels)
             # find number of channels by forwarding dummy input
-            n_channels, grid_width, grid_height = decompressor(th.zeros((1,1, self.get_obs_size())), get_size_only=True).shape[-3:]
+            n_channels, grid_width, grid_height = decompressor(th.zeros((1, 1, self.get_obs_size())),
+                                                               get_size_only=True).shape[-3:]
             obs_decoder = dill.dumps(partial(self.grid_obs_decoder,
                                              width=self.obs_grid_shape[0],
                                              height=self.obs_grid_shape[1],
@@ -2528,12 +2574,12 @@ class SC2(MultiAgentEnv):
                                              ))
 
         actions_decoder_grid = dill.dumps(partial(self.actions_decoder_grid,
-                                             obs_grid_shape=self.obs_grid_shape,
-                                             n_actions_no_attack=self.n_actions_no_attack,
-                                             obs_get=self.obs_get,
-                                             obs_explode=self.obs_explode,
-                                             mask_val=float("-999999")
-                                             ))
+                                                  obs_grid_shape=self.obs_grid_shape,
+                                                  n_actions_no_attack=self.n_actions_no_attack,
+                                                  obs_get=self.obs_get,
+                                                  obs_explode=self.obs_explode,
+                                                  mask_val=float("-999999")
+                                                  ))
 
         actions_encoder_grid = dill.dumps(partial(self.actions_encoder_grid,
                                                   obs_grid_shape=self.obs_grid_shape,
@@ -2543,30 +2589,31 @@ class SC2(MultiAgentEnv):
                                                   ))
 
         avail_actions_encoder_grid = dill.dumps(partial(self.avail_actions_encoder_grid,
-                                                   obs_grid_shape=self.obs_grid_shape,
-                                                   n_actions_no_attack=self.n_actions_no_attack,
-                                                   obs_get=self.obs_get,
-                                                   obs_explode=self.obs_explode,
-                                                   mask_val=float("-999999")
-                                                   ))
+                                                        obs_grid_shape=self.obs_grid_shape,
+                                                        n_actions_no_attack=self.n_actions_no_attack,
+                                                        obs_get=self.obs_get,
+                                                        obs_explode=self.obs_explode,
+                                                        mask_val=float("-999999")
+                                                        ))
 
         env_info = {"state_shape": self.get_state_size(),
                     "state_decoder": dill.dumps(self.state_decoder),
                     "obs_shape": self.get_obs_size(),
                     "obs_shape_decoded": self.get_obs_size() if self.obs_decoder is None else (
-                    n_channels, grid_width, grid_height),
+                        n_channels, grid_width, grid_height),
                     "obs_decoder": obs_decoder,
-                    #"actions_encoder": actions_encoder,
+                    # "actions_encoder": actions_encoder,
                     "actions_decoder_grid": actions_decoder_grid,
                     "actions_encoder_grid": actions_encoder_grid,
                     "avail_actions_encoder_grid": avail_actions_encoder_grid,
                     # "avail_actions_decoder_flat": avail_actions_decoder_flat,
-                    "n_actions": self.n_actions_encoding, #self.get_total_actions(),
+                    "n_actions": self.n_actions_encoding,  # self.get_total_actions(),
                     "n_actions_no_attack": self.n_actions_no_attack,
                     "n_available_actions": self.n_available_actions,
                     "n_agents": self.n_agents,
                     "episode_limit": self.episode_limit}
         return env_info
+
 
 # from components.transforms_old import _seq_mean
 
@@ -2592,14 +2639,19 @@ class StatsAggregator():
         aggregate_stats = {}
         for _k, _v in current_stats.items():
             if _k in ["win_rate"]:
-                aggregate_stats[_k] = np.mean([ (_a - _b)/(_c - _d) for _a, _b, _c, _d in zip(current_stats["battles_won"],
-                                                                                              [0]*len(current_stats["battles_won"]) if self.last_stats is None else self.last_stats["battles_won"],
-                                                                                              current_stats["battles_game"],
-                                                                                              [0]*len(current_stats["battles_game"]) if self.last_stats is None else
-                                                                                              self.last_stats["battles_game"])
-                                                if (_c - _d) != 0.0])
+                aggregate_stats[_k] = np.mean(
+                    [(_a - _b) / (_c - _d) for _a, _b, _c, _d in zip(current_stats["battles_won"],
+                                                                     [0] * len(current_stats[
+                                                                                   "battles_won"]) if self.last_stats is None else
+                                                                     self.last_stats["battles_won"],
+                                                                     current_stats["battles_game"],
+                                                                     [0] * len(current_stats[
+                                                                                   "battles_game"]) if self.last_stats is None else
+                                                                     self.last_stats["battles_game"])
+                     if (_c - _d) != 0.0])
             else:
-                aggregate_stats[_k] = np.mean([_a-_b for _a, _b in zip(_v, [0]*len(_v) if self.last_stats is None else self.last_stats[_k])])
+                aggregate_stats[_k] = np.mean(
+                    [_a - _b for _a, _b in zip(_v, [0] * len(_v) if self.last_stats is None else self.last_stats[_k])])
 
         # add stats that have just been produced to tensorboard / sacred
         for _k, _v in aggregate_stats.items():
@@ -2613,9 +2665,9 @@ class StatsAggregator():
 
     def log(self, log_directly=False):
         assert not log_directly, "log_directly not supported."
-        logging_str = " Win rate: {}".format(_seq_mean([ stat["win_rate"] for stat in self.stats ]))\
-                    + " Timeouts: {}".format(_seq_mean([ stat["timeouts"] for stat in self.stats ]))\
-                    + " Restarts: {}".format(_seq_mean([ stat["restarts"] for stat in self.stats ]))
+        logging_str = " Win rate: {}".format(_seq_mean([stat["win_rate"] for stat in self.stats])) \
+                      + " Timeouts: {}".format(_seq_mean([stat["timeouts"] for stat in self.stats])) \
+                      + " Restarts: {}".format(_seq_mean([stat["restarts"] for stat in self.stats]))
 
         # flush stats
         self.stats = []
