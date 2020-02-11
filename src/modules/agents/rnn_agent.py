@@ -114,10 +114,12 @@ class RNNConvDDPGInputGridAgent(nn.Module):
 
         in_channels, n_dim_x, n_dim_y = input_shape["2d"]
         in_channels += 2 # action channels
-
-        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=3))
-        self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=3))
-
+        if(int(self.args.env_args["obs_grid_shape"].split("x")[0]) < 12):
+            self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=2, stride=3))
+            self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=2))
+        else:
+            self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=3))
+            self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=3))
         # find output dim
         dummy_th = th.zeros(1, in_channels, *input_shape["2d"][1:]).to(next(self.parameters()).device)
         out = self.conv2(self.conv1(dummy_th))
