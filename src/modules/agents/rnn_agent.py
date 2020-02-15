@@ -223,7 +223,7 @@ class RNNConvDDPGInputGridNoIDAgent(nn.Module):
 
 class RNNConvNatureInputGridAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(RNNConvNatureInputGridAgent, self).__init__()
+        super(RNNConvNatureInputGridAgent, self).__init__()c
         self.args = args
 
         # self.conv1 = EncoderResNet(Bottleneck, [3, 4, 6, 3])
