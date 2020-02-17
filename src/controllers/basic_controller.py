@@ -75,7 +75,7 @@ class BasicMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1).to(ep_batch.device)
 
     def init_hidden(self, batch_size):
-        if self.args.action_input_representation=="InputFlat" or self.args.action_input_representation=="Grid":
+        if self.args.action_input_representation=="Flat" or self.args.action_input_representation=="Grid":
             self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, self.args.n_actions, -1)  # bav
         else:
             self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
@@ -108,12 +108,7 @@ class BasicMAC:
             inputs["2d"] = obs_decoded["2d"][0]
         else:
             inputs["1d"] = obs
-        """
-        if len(obs.shape[3:]) in [2, 3]:
-            inputs["2d"] = obs_decoded["2d"]
-        else:
-            inputs["1d"] = obs
-        """
+
         if self.args.obs_last_action:
             if t == 0:
                 onehot = th.zeros_like(batch["actions_onehot"][:, t].to(self.args.device))
@@ -124,7 +119,7 @@ class BasicMAC:
         if self.args.obs_agent_id:
             obs_agent_id = th.eye(self.n_agents, device=self.args.device).unsqueeze(0).expand(bs, -1, -1)
             inputs.update([("1d", th.cat([inputs["1d"], obs_agent_id], -1) if "1d" in inputs else obs_agent_id)])
-        if self.args.action_input_representation == "InputFlat":
+        if self.args.action_input_representation == "Flat":
             avail_actions = th.eye(self.args.n_actions,self.args.n_actions).repeat(bs*self.n_agents,1)
             inputs["1d"] = inputs["1d"].view(bs*self.n_agents, -1)
             inputs["1d"] = th.repeat_interleave(inputs["1d"], self.args.n_actions, 0)
