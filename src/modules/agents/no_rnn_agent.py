@@ -104,7 +104,7 @@ class ConvDDPGInputGridDeepNoIDAgent(nn.Module):
         dummy_th = th.zeros(1, in_channels, *input_shape["2d"][1:]).to(next(self.parameters()).device)
         out = self.conv2(self.conv1(dummy_th))
 
-        self.fc1 = nn.Linear(input_shape["1d"][0] + out.shape[-3] * out.shape[-2] * out.shape[-1], args.rnn_hidden_dim)
+        self.fc1 = nn.Linear(out.shape[-3] * out.shape[-2] * out.shape[-1], args.rnn_hidden_dim)
         self.fc2 = nn.Linear(args.rnn_hidden_dim, args.rnn_hidden_dim)
         self.fc3 = nn.Linear(args.rnn_hidden_dim, 1)
 
@@ -143,7 +143,7 @@ class ConvDDPGInputGridShallowNoIDAgent(nn.Module):
         dummy_th = th.zeros(1, in_channels, *input_shape["2d"][1:]).to(next(self.parameters()).device)
         out = self.conv2(self.conv1(dummy_th))
 
-        self.fc1 = nn.Linear(input_shape["1d"][0] + out.shape[-3] * out.shape[-2] * out.shape[-1], args.rnn_hidden_dim)
+        self.fc1 = nn.Linear(out.shape[-3] * out.shape[-2] * out.shape[-1], args.rnn_hidden_dim)
         self.fc2 = nn.Linear(args.rnn_hidden_dim, 1)
 
     def init_hidden(self):
