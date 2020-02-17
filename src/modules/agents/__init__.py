@@ -1,7 +1,7 @@
 REGISTRY = {}
 
 from .rnn_agent import RNNAgent, RNNInputActionAgent, RNNConvDDPGAgent, RNNConvDDPGInputGridAgent, RNNConvDDPGInputFlatAgent, RNNConvDDPGInputGridNoIDAgent
-from .no_rnn_agent import ConvDDPGInputGridDeepAgent, ConvDDPGInputGridShallowAgent
+from .no_rnn_agent import ConvDDPGInputGridDeepAgent, ConvDDPGInputGridShallowAgent, ConvDDPGInputGridDeepNoIDAgent, ConvDDPGInputGridShallowNoIDAgent
 
 #RNN
 REGISTRY["rnn"] = RNNAgent
@@ -14,3 +14,5 @@ REGISTRY["rnn_convddpg_input_flat"] = RNNConvDDPGInputFlatAgent
 #no_rnn
 REGISTRY["convddpg_input_grid_deep"] = ConvDDPGInputGridDeepAgent
 REGISTRY["convddpg_input_grid_shallow"] = ConvDDPGInputGridShallowAgent
+REGISTRY["convddpg_input_grid_deep_no_id"] = ConvDDPGInputGridDeepNoIDAgent
+REGISTRY["convddpg_input_grid_shallow_no_id"] = ConvDDPGInputGridShallowNoIDAgent
