@@ -160,3 +160,4 @@ class ConvDDPGInputGridShallowNoIDAgent(nn.Module):
         y = self.fc2(h)
         th.cuda.empty_cache()
         return y, h
+

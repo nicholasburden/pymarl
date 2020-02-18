@@ -1765,9 +1765,20 @@ class SC2(MultiAgentEnv):
                          {"type": "ally_or_enemy", "mode": "compressed"},
                          #{"type": "id", "mode": "compressed"},
                          {"type": "health", "mode": "compressed"}]
+
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             channels_out = th.cat([channels[..., 1:3, :, :],
                                    channels[..., 10:, :, :]], dim=-3)  # remove superfluous type channels
+            return channels_out
+
+
+        elif scenario == "metamix__2s3z_noid_nolastaction_nounittype":
+            label_lst = [#{"type": "unit_type", "mode": "compressed"},
+                         {"type": "ally_or_enemy", "mode": "compressed"},
+                         #{"type": "id", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
+
+            channels_out = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels_out
 
         elif scenario == "metamix__2s3z_noid":
