@@ -132,7 +132,8 @@ class RNNConvDDPGNoIDAgent(nn.Module):
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
     def forward(self, inputs, hidden_state):
-        y = F.elu(self.conv1(inputs["2d"]))
+        inp = th.zeros_like(inputs["2d"])
+        y = F.elu(self.conv1(inp))
         y = F.elu(self.conv2(y))
         x = F.relu(self.fc1(y.view(y.shape[0], -1)))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
