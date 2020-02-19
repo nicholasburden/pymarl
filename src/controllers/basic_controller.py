@@ -108,7 +108,6 @@ class BasicMAC:
             inputs["2d"] = obs_decoded["2d"][0]
         else:
             inputs["1d"] = obs
-
         if self.args.obs_last_action:
             if t == 0:
                 onehot = th.zeros_like(batch["actions_onehot"][:, t].to(self.args.device))

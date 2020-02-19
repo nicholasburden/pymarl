@@ -161,3 +161,32 @@ class ConvDDPGInputGridShallowNoIDAgent(nn.Module):
         th.cuda.empty_cache()
         return y, h
 
+class ConvDDPGNoIDAgent(nn.Module):
+    def __init__(self, input_shape, args):
+        super(ConvDDPGNoIDAgent, self).__init__()
+        self.args = args
+
+        # self.conv1 = EncoderResNet(Bottleneck, [3, 4, 6, 3])
+
+        in_channels, n_dim_x, n_dim_y = input_shape["2d"]
+
+        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=2))
+        self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=3))
+
+        # find output dim
+        dummy_th = th.zeros(1, *input_shape["2d"]).to(next(self.parameters()).device)
+        out = self.conv2(self.conv1(dummy_th))
+
+        self.fc1 = nn.Linear(out.shape[-3] * out.shape[-2] * out.shape[-1], args.rnn_hidden_dim)
+        self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
+
+    def init_hidden(self):
+        # make hidden states on same device as model
+        return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
+
+    def forward(self, inputs, hidden_state):
+        y = F.elu(self.conv1(inputs["2d"]))
+        y = F.elu(self.conv2(y))
+        h = F.relu(self.fc1(y.view(y.shape[0], -1)))
+        q = self.fc2(h)
+        return q, h
