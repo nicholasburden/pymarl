@@ -1809,25 +1809,25 @@ class SC2(MultiAgentEnv):
                                    channels[..., 10:, :, :]], dim=-3)  # remove superfluous type channels
             return channels_out
 
+        elif scenario == "metamix__5m":
 
-        elif scenario == "metamix__2s3z_precise":
-            # channels = []
-            # ally_or_enemy_channels = create_channels(label="ally_or_enemy", obs=obs)
-            # ally_or_enemy_channel = ally_or_enemy_channels[...,0:1,:,:] - ally_or_enemy_channels[...,1:2,:,:]
-            # channels.append(ally_or_enemy_channel)
-            # id_channels = create_channels(label="id", obs=obs)
-            # id_channel = id_channels[...,0:1,:,:] - id_channels[...,1:2,:,:]
-            # channels.append(id_channel)
-            # health_channels = create_channels(label="health", obs=obs)
-            # health_channel  = health_channels[...,0:1,:,:] + health_channels[...,1:2,:,:]
-            # channels.append(health_channel)
-            # precise_pos_channels = create_channels(label="precise_pos", obs=obs)
-            # precise_pos_x_channel = precise_pos_channels[...,0:1,:,:] + precise_pos_channels[...,2:3,:,:]
-            # precise_pos_y_channel = precise_pos_channels[..., 1:2, :, :] + precise_pos_channels[..., 3:4, :, :]
-            # channels.append(precise_pos_x_channel)
-            # channels.append(precise_pos_y_channel)
-            # output = th.cat(channels, dim=-3)
-            return output
+            label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "id", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
+            channels = create_channels(label_lst, obs, get_size_only=get_size_only)
+            return channels
+
+        elif scenario == "metamix__3s5z":
+            label_lst = [{"type": "unit_type", "mode": "compressed"},
+                         {"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type":"id", "mode":"compressed"},
+                         #{"type": "last_action", "mode": "compressed"},
+                         # {"type":"multiple_occupancy", "mode":"compressed"},
+                         {"type": "health", "mode": "compressed"}]
+            channels = create_channels(label_lst, obs, get_size_only=get_size_only)
+            channels_out = th.cat([channels[..., 1:3, :, :],
+                                   channels[..., 10:, :, :]], dim=-3)  # remove superfluous type channels
+            return channels_out
 
     def get_obs(self):
         agents_obs = [self.get_obs_agent(i) for i in range(self.n_agents)]

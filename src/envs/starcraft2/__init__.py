@@ -1,4 +1,5 @@
 from .starcraft2 import SC2 as StarCraft2Env
+from .starcraft2custom import StarCraft2CustomEnv
 from .map_params import map_param_registry
 from pysc2 import maps
 
