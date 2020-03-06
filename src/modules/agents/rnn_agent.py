@@ -186,7 +186,7 @@ class RNNConvDDPGInputGridAgent(nn.Module):
 #action_input_representation=Flat, obs_input_representation=Grid
 class RNNConvDDPGInputFlatAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(MathiasAgent, self).__init__()
+        super(RNNConvDDPGInputFlatAgent, self).__init__()
         self.args = args
 
         # self.conv1 = EncoderResNet(Bottleneck, [3, 4, 6, 3])
