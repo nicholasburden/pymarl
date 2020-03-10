@@ -1749,6 +1749,13 @@ class SC2(MultiAgentEnv):
             channels = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels
 
+        elif scenario == "metamix__5m_noid_nolastaction":
+
+            label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
+                         {"type": "health", "mode": "compressed"}]
+            channels = create_channels(label_lst, obs, get_size_only=get_size_only)
+            return channels
+
         elif scenario == "metamix__3m_precise":
             label_lst = [{"type": "ally_or_enemy", "mode": "compressed"},
                          {"type": "id", "mode": "compressed"},
