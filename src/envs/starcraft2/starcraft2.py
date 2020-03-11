@@ -1816,6 +1816,8 @@ class SC2(MultiAgentEnv):
             channels_out = create_channels(label_lst, obs, get_size_only=get_size_only)
             return channels_out
 
+
+
         elif scenario == "metamix__2s3z_empty":
             label_lst = []
 
