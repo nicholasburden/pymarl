@@ -291,7 +291,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
                                                                                 uncert_higher_regions,
                                                                                 uncert_idx_regions):
             # print(uncert_colors[color_idx % len(uncert_colors)])
-            ax_main.fill_between(uncert_idx_region,
+            ax_main.fill_between([x-uncert_idx_region[0] for x in uncert_idx_region],
                                  uncert_lower_region,
                                  uncert_higher_region,
                                  color=uncert_colors[color_idx % len(uncert_colors)],
@@ -314,7 +314,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
     for color_idx, mean in enumerate(bundle_avgs["mean"]):
         mean_regions, mean_idx_regions = region_split(mean, bundle_avgs["_idx"], float("nan"))
         for mean_region, mean_idx_region in zip(mean_regions, mean_idx_regions):
-            ax_main.plot(mean_idx_region, mean_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7)
+            ax_main.plot([x-mean_idx_region[0] for x in mean_idx_region], mean_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7)
 
     # plot legend
     patches = [mpatches.Patch(color=mean_colors[_i % len(mean_colors)],
