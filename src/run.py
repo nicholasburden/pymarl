@@ -46,7 +46,12 @@ def run(_run, _config, _log):
     logger.setup_sacred(_run)
 
     # Run and train
-    run_double(args=args, logger=logger)
+    if args.run_double != "None":
+        print("double")
+        run_double(args=args, logger=logger)
+
+    else:
+        run_sequential(args=args, logger=logger)
 
     # Clean up after finishing
     print("Exiting Main")
@@ -371,7 +376,7 @@ def run_double(args, logger):
             last_log_T = runner.t_env
 
 
-        if runner.t_env <= args.t_max:
+        if runner.t_env >= args.t_max:
             break
     runner.close_env()
     logger.console_logger.info("Finished Training")
