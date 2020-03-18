@@ -47,7 +47,6 @@ def run(_run, _config, _log):
 
     # Run and train
     if args.run_double != "None":
-        print("double")
         run_double(args=args, logger=logger)
 
     else:
