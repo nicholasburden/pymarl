@@ -262,7 +262,7 @@ def region_split(lst, idx_lst, splitsymbol):
     return out_lst, idx_out_lst
 
 
-def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
+def plot_bundle_avgs(bundle_avgs, figsize=(40, 20), max_x=None):
     # TODO: Add skew and kurtosis plots!
 
     # define colors
@@ -279,6 +279,7 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20)):
     ax_main = fig.add_subplot(gs[:-1, :])
     ax_main.set_xlabel("T")
     ax_main.set_ylabel("Test Win Rate")
+    ax_main.set_xlim(right=max_x)
     #ax_fail = fig.add_subplot(gs[-1, :],
                               #sharex=ax_main)
 
