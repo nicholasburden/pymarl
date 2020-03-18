@@ -46,7 +46,7 @@ def run(_run, _config, _log):
     logger.setup_sacred(_run)
 
     # Run and train
-    run_sequential(args=args, logger=logger)
+    run_double(args=args, logger=logger)
 
     # Clean up after finishing
     print("Exiting Main")
@@ -225,6 +225,156 @@ def run_sequential(args, logger):
     runner.close_env()
     logger.console_logger.info("Finished Training")
 
+
+
+
+def run_double(args, logger):
+
+    # Init runner so we can get env info
+
+
+    # Set up schemes and groups here
+
+
+
+
+
+
+    # start training
+    episode = 0
+    last_test_T = -args.test_interval - 1
+    last_log_T = 0
+    model_save_time = 0
+
+    start_time = time.time()
+    last_time = start_time
+
+    logger.console_logger.info("Beginning training for {} timesteps".format(args.t_max))
+
+
+
+
+    while True:
+
+
+        if episode % 2 == 0:
+            temp = args.env_args["map_name"]
+            args.env_args["map_name"] = args.env_args["map_name2"]
+            args.env_args["map_name2"] = temp
+        runner = r_REGISTRY[args.runner](args=args, logger=logger)
+        env_info = runner.get_env_info()
+        args.n_agents = env_info["n_agents"]
+        args.n_actions = env_info["n_actions"]
+        args.obs_decoder = dill.loads(env_info["obs_decoder"]) if env_info["obs_decoder"] is not None else None
+        args.avail_actions_encoder = dill.loads(env_info["avail_actions_encoder_grid"]) if env_info[
+                                                                                               "avail_actions_encoder_grid"] is not None else None
+
+        args.state_shape = env_info["state_shape"]
+
+        # Default/Base scheme
+        scheme = {
+            "state": {"vshape": env_info["state_shape"]},
+            "obs": {"vshape": env_info["obs_shape"], "group": "agents",
+                    "vshape_decoded": env_info.get("obs_shape_decoded", env_info["obs_shape"])},
+            "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
+            "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
+            "reward": {"vshape": (1,)},
+            "terminated": {"vshape": (1,), "dtype": th.uint8},
+        }
+        groups = {
+            "agents": args.n_agents
+        }
+        preprocess = {
+            "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
+        }
+
+        buffer = ReplayBuffer(scheme, groups, args.buffer_size, env_info["episode_limit"] + 1,
+                              preprocess=preprocess,
+                              device="cpu" if args.buffer_cpu_only else args.device)
+
+        # Setup multiagent controller here
+        mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args)
+
+        # Give runner the scheme
+        runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
+
+        # Learner
+        learner = le_REGISTRY[args.learner](mac, buffer.scheme, logger, args)
+
+        if args.use_cuda:
+            learner.cuda()
+
+
+
+
+
+
+
+
+
+
+
+
+
+        th.cuda.empty_cache()
+        # Run for a whole episode at a time
+        episode_batch = runner.run(test_mode=False)
+        buffer.insert_episode_batch(episode_batch)
+        del episode_batch
+
+        if buffer.can_sample(args.batch_size):
+            episode_sample = buffer.sample(args.batch_size)
+
+            # Truncate batch to only filled timesteps
+            max_ep_t = episode_sample.max_t_filled()
+            episode_sample = episode_sample[:, :max_ep_t]
+
+            if episode_sample.device != args.device:
+                episode_sample.to(args.device)
+
+
+
+            learner.train(episode_sample, runner.t_env, episode)
+            th.cuda.empty_cache()
+
+        # Execute test runs once in a while
+        n_test_runs = max(1, args.test_nepisode // runner.batch_size)
+        if (runner.t_env - last_test_T) / args.test_interval >= 1.0:
+
+            logger.console_logger.info("t_env: {} / {}".format(runner.t_env, args.t_max))
+            logger.console_logger.info("Estimated time left: {}. Time passed: {}".format(
+                time_left(last_time, last_test_T, runner.t_env, args.t_max), time_str(time.time() - start_time)))
+            last_time = time.time()
+
+            last_test_T = runner.t_env
+            for _ in range(n_test_runs):
+                runner.run(test_mode=True)
+            th.cuda.empty_cache()
+
+        if args.save_model and (runner.t_env - model_save_time >= args.save_model_interval or model_save_time == 0):
+            model_save_time = runner.t_env
+            save_path = os.path.join(args.local_results_path, "models", args.unique_token, str(runner.t_env))
+            #"results/models/{}".format(unique_token)
+            os.makedirs(save_path, exist_ok=True)
+            logger.console_logger.info("Saving models to {}".format(save_path))
+
+            # learner should handle saving/loading -- delegate actor save/load to mac,
+            # use appropriate filenames to do critics, optimizer states
+            learner.save_models(save_path)
+
+        episode += args.batch_size_run
+        th.cuda.empty_cache()
+
+        if (runner.t_env - last_log_T) >= args.log_interval:
+            logger.log_stat("episode", episode, runner.t_env)
+            logger.print_recent_stats()
+            last_log_T = runner.t_env
+
+
+        if runner.t_env <= args.t_max:
+            break
+    runner.close_env()
+    logger.console_logger.info("Finished Training")
 
 def args_sanity_check(config, _log):
 
