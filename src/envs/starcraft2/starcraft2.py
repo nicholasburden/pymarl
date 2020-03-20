@@ -1240,7 +1240,7 @@ class SC2(MultiAgentEnv):
             tmp = sorted(tmp, key=lambda row: allegiance_dict[row["utype"]], reverse=True)
             return tmp
 
-        f = open("mult_occ_18x18.txt", "a")
+        f = open("mult_occ_24x24.txt", "a")
         f.write(str(len(multiples))+",")
         f.close()
         # now deal with multiple occupancy
