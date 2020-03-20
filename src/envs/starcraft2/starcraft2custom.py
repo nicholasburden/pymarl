@@ -1794,6 +1794,7 @@ class StarCraft2CustomEnv(MultiAgentEnv):
         :param enemy_feats:
         :return:
         """
+        print("X")
         from collections import defaultdict
         pos_hash = defaultdict(lambda: [])
         width, height = obs_grid_shape
@@ -1866,6 +1867,7 @@ class StarCraft2CustomEnv(MultiAgentEnv):
                             obs_set(category="x_sc2", val=x, obs=feats[unit["id"]], obs_type=unit["utype"])
                             obs_set(category="y_sc2", val=y, obs=feats[unit["id"]], obs_type=unit["utype"])
                         else:
+                            print("x")
                             x, y = int(coord[0]), int(coord[1])
                             dist = (x ** 2 + y ** 2) ** 0.5
                             x_raster, y_raster = from_grid_coords(coord[0],

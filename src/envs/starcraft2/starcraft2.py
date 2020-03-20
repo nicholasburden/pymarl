@@ -1188,7 +1188,6 @@ class SC2(MultiAgentEnv):
         from collections import defaultdict
         pos_hash = defaultdict(lambda: [])
         width, height = obs_grid_shape
-
         multiples = set([])
         for al_id, al_feat in enumerate(ally_feats):
             if obs_get(category="visible", obs=al_feat, obs_type="ally") == 1.0:  # ally visible at all
@@ -1241,6 +1240,9 @@ class SC2(MultiAgentEnv):
             tmp = sorted(tmp, key=lambda row: allegiance_dict[row["utype"]], reverse=True)
             return tmp
 
+        f = open("mult_occ_18x18.txt", "a")
+        f.write(str(len(multiples))+",")
+        f.close()
         # now deal with multiple occupancy
         for multiple in multiples:
             while len(pos_hash[multiple]) > 1:
@@ -1537,7 +1539,8 @@ class SC2(MultiAgentEnv):
                              "precise_pos": {"uncompressed": 4, "compressed": 2},
                              "health": {"uncompressed": 2, "compressed": 1},
                              "last_action": {"uncompressed": 2, "compressed": 2},
-                             "attackable": {"uncompressed": 1, "compressed": 1}}
+                             "attackable": {"uncompressed": 1, "compressed": 1},
+                             "multiple_occupancy": {"uncompressed": 1, "compressed": 1}}
 
         n_channels = sum([dim_channels_dict[label["type"]][label.get("mode", "uncompressed")] for label in label_lst])
 
