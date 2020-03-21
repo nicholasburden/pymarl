@@ -511,6 +511,10 @@ def run_reptile(args, logger, _log, _run):
             env_info = runner.get_env_info()
             task_args.n_agents = env_info["n_agents"]
             task_args.n_actions = env_info["n_actions"]
+            task_args.obs_decoder = dill.loads(env_info["obs_decoder"]) if env_info["obs_decoder"] is not None else None
+            task_args.avail_actions_encoder = dill.loads(env_info["avail_actions_encoder_grid"]) if env_info[
+                                                                                                   "avail_actions_encoder_grid"] is not None else None
+
             task_args.state_shape = env_info["state_shape"]
             task_args.state_decoder = dill.loads(env_info["state_decoder"]) if env_info["state_decoder"] is not None else None
             task_args.obs_decoder = dill.loads(env_info["obs_decoder"]) if env_info["obs_decoder"] is not None else None
