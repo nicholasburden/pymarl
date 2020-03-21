@@ -1,0 +1,54 @@
+meta: reptile
+name: reptile_3m_5m
+reptile_epsilon: 1.
+n_task_trains:
+  qmix_sc2_3m: 5
+  qmix_sc2_5m: 5
+n_task_rollouts:
+  qmix_sc2_3m: 10
+  qmix_sc2_5m: 10
+tasks:
+  qmix_sc2_3m:
+      config: vdn_journal
+      env-config: sc2
+      t_max: 10050000
+      test_nepisode: 24
+      test_greedy: True
+      env_args:
+        obs_own_health: True # We want this for SMAC(right?)
+        map_name: 3m
+        obs_decoder: grid_metamix__3m_noid_nolastaction
+        obs_grid_shape: 12x12
+      agent: rnn
+      epsilon_start: 1.0
+      epsilon_finish: 0.05
+      epsilon_anneal_time: 50000
+      target_update_interval: 200
+      save_model: True
+      save_model_interval: 200000
+      test_interval: 20000
+      log_interval: 20000
+      runner_log_interval: 20000
+      learner_log_interval: 20000
+  qmix_sc2_5m:
+    config: vdn_journal
+    env-config: sc2
+    t_max: 10050000
+    test_nepisode: 24
+    test_greedy: True
+    env_args:
+      obs_own_health: True # We want this for SMAC(right?)
+      map_name: 5m
+      obs_decoder: grid_metamix__3m_noid_nolastaction
+      obs_grid_shape: 12x12
+    agent: rnn
+    epsilon_start: 1.0
+    epsilon_finish: 0.05
+    epsilon_anneal_time: 50000
+    target_update_interval: 200
+    save_model: True
+    save_model_interval: 200000
+    test_interval: 20000
+    log_interval: 20000
+    runner_log_interval: 20000
+    learner_log_interval: 20000
