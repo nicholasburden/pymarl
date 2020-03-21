@@ -489,7 +489,7 @@ def run_reptile(args, logger, _log, _run):
         task_names = []
         for task_name, _ in task_configs.items():
             task_names.append(task_name)
-            
+
         # set up tasks based on the configs
         for task_name, task_config in task_configs.items():
 
