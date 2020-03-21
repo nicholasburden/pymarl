@@ -72,8 +72,8 @@ def run(_run, _config, _log):
     logger.setup_sacred(_run)
 
     # Run and train
-    if args.run_double != "None":
-        run_double(args=args, logger=logger)
+    if args.meta == "reptile":
+        run_reptile(args=args, logger=logger, _log=_log, _run=_run)
 
     else:
         run_sequential(args=args, logger=logger)
@@ -487,6 +487,8 @@ def run_reptile(args, logger, _log, _run):
     def setup_components(logger,
                          agent_state_dict):
 
+
+        agent = None
         # set up tasks based on the configs
         for task_name, task_config in task_configs.items():
 
@@ -516,7 +518,8 @@ def run_reptile(args, logger, _log, _run):
             # Default/Base scheme
             scheme = {
                 "state": {"vshape": env_info["state_shape"]},
-                "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
+                "obs": {"vshape": env_info["obs_shape"], "group": "agents",
+                        "vshape_decoded": env_info.get("obs_shape_decoded", env_info["obs_shape"])},
                 "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
                 "avail_actions": {"vshape": (env_info["n_actions"],), "group": "agents", "dtype": th.int},
                 "reward": {"vshape": (1,)},
@@ -538,6 +541,10 @@ def run_reptile(args, logger, _log, _run):
             mac = mac_REGISTRY[task_args.mac](buffer.scheme, groups, task_args)
             macs[task_name] = mac
 
+            if agent == None:
+                agent = mac.agent
+            else:
+                mac.Agent = agent
             # Give runner the scheme
             runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
 
