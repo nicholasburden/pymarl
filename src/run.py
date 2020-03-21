@@ -486,9 +486,10 @@ def run_reptile(args, logger, _log, _run):
 
     def setup_components(logger,
                          agent_state_dict):
-
-
-        agent = None
+        task_names = []
+        for task_name, _ in task_configs.items():
+            task_names.append(task_name)
+            
         # set up tasks based on the configs
         for task_name, task_config in task_configs.items():
 
@@ -543,12 +544,11 @@ def run_reptile(args, logger, _log, _run):
 
             # Setup multiagent controller here
             mac = mac_REGISTRY[task_args.mac](buffer.scheme, groups, task_args)
-            macs[task_name] = mac
 
-            if agent == None:
-                agent = mac.agent
-            else:
-                mac.agent = agent
+            #point model to same object
+            macs[task_name] = mac
+            mac.agent = macs[task_names[0]].agent
+
             # Give runner the scheme
             runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
 
