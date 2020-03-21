@@ -18,7 +18,7 @@ tasks:
         obs_own_health: True # We want this for SMAC(right?)
         map_name: 3m
         obs_decoder: grid_metamix__3m_noid_nolastaction
-        obs_grid_shape: 6x6
+        obs_grid_shape: 12x12
       agent: rnn_convddpg_input_grid_no_id
       epsilon_start: 1.0
       epsilon_finish: 0.05
@@ -42,7 +42,7 @@ tasks:
       obs_own_health: True # We want this for SMAC(right?)
       map_name: 5m
       obs_decoder: grid_metamix__3m_noid_nolastaction
-      obs_grid_shape: 6x6
+      obs_grid_shape: 12x12
     agent: rnn_convddpg_input_grid_no_id
     epsilon_start: 1.0
     epsilon_finish: 0.05
