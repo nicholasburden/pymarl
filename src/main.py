@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import collections
 from os.path import dirname, abspath
@@ -12,7 +11,7 @@ import torch as th
 from utils.logging import get_logger
 import yaml
 import pymongo
-
+import numpy as np
 from run import run
 
 SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
