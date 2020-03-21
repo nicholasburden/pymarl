@@ -548,7 +548,7 @@ def run_reptile(args, logger, _log, _run):
             if agent == None:
                 agent = mac.agent
             else:
-                mac.Agent = agent
+                mac.agent = agent
             # Give runner the scheme
             runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
 

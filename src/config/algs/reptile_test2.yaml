@@ -30,6 +30,7 @@ tasks:
       log_interval: 20000
       runner_log_interval: 20000
       learner_log_interval: 20000
+      use_cuda: False
   qmix_sc2_5m:
     config: vdn_journal
     env-config: sc2
@@ -52,3 +53,4 @@ tasks:
     log_interval: 20000
     runner_log_interval: 20000
     learner_log_interval: 20000
+    use_cuda: False
