@@ -9,6 +9,7 @@ n_task_rollouts:
   qmix_sc2_5m: 10
 tasks:
   qmix_sc2_3m:
+      label: 3m_and_5m_reptile2
       config: vdn_journal
       env-config: sc2
       t_max: 10050000
@@ -33,6 +34,7 @@ tasks:
       action_input_representation: Grid
 
   qmix_sc2_5m:
+    label: 3m_and_5m_reptile2
     config: vdn_journal
     env-config: sc2
     t_max: 10050000
