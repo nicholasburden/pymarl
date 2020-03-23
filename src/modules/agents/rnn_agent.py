@@ -237,7 +237,7 @@ class RNNConvDDPGInputGridNoIDAgent(nn.Module):
             self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=2, stride=3))
             self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=2))
         else:
-            self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=3))
+            self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=3, stride=2))
             self.conv2 = layer_init(nn.Conv2d(32, 32, kernel_size=3))
 
         # find output dim
