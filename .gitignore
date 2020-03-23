@@ -1,5 +1,6 @@
 #created by http://www.gitignore.io
 
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -110,5 +111,5 @@ venv/
 *.txt
 MUJOCO_LOG.txt
 
-
 src/config/default.yaml
+src/config/algs/reptile_test.yaml
