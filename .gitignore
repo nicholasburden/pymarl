@@ -112,4 +112,3 @@ venv/
 MUJOCO_LOG.txt
 
 src/config/default.yaml
-src/config/algs/reptile_test.yaml
