@@ -3,10 +3,10 @@ f2 = open("mult_occ_12x12.txt", "r")
 f3 = open("mult_occ_18x18.txt", "r")
 f4 = open("mult_occ_24x24.txt", "r")
 
-line1=f.readline()[:-1]
-line2=f2.readline()[:-1]
-line3=f3.readline()[:-1]
-line4=f4.readline()[:-1]
+line1=f.readline()
+line2=f2.readline()
+line3=f3.readline()
+line4=f4.readline()
 
 list1 = [int(x) for x in line1.split(",")]
 list2 = [int(x) for x in line2.split(",")]

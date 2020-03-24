@@ -262,7 +262,7 @@ def region_split(lst, idx_lst, splitsymbol):
     return out_lst, idx_out_lst
 
 
-def plot_bundle_avgs(bundle_avgs, figsize=(40, 20), max_x=None):
+def plot_bundle_avgs(bundle_avgs, figsize=(40, 20), max_x=10000000, normalize=False):
     # TODO: Add skew and kurtosis plots!
 
     # define colors
@@ -291,12 +291,20 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20), max_x=None):
         for uncert_lower_region, uncert_higher_region, uncert_idx_region in zip(uncert_lower_regions,
                                                                                 uncert_higher_regions,
                                                                                 uncert_idx_regions):
-            # print(uncert_colors[color_idx % len(uncert_colors)])
-            ax_main.fill_between([x-uncert_idx_region[0] for x in uncert_idx_region],
-                                 uncert_lower_region,
-                                 uncert_higher_region,
-                                 color=uncert_colors[color_idx % len(uncert_colors)],
-                                 alpha=0.4)
+            if normalize:
+                # print(uncert_colors[color_idx % len(uncert_colors)])
+                ax_main.fill_between([(x-uncert_idx_region[0]) for x in uncert_idx_region],
+                                     uncert_lower_region,
+                                     uncert_higher_region,
+                                     color=uncert_colors[color_idx % len(uncert_colors)],
+                                     alpha=0.4)
+            else:
+                # print(uncert_colors[color_idx % len(uncert_colors)])
+                ax_main.fill_between(uncert_idx_region,
+                                     uncert_lower_region,
+                                     uncert_higher_region,
+                                     color=uncert_colors[color_idx % len(uncert_colors)],
+                                     alpha=0.4)
     """
     # plot min / max
     for color_idx, (_min, _max) in enumerate(zip(bundle_avgs["min"], bundle_avgs["max"])):
@@ -315,7 +323,10 @@ def plot_bundle_avgs(bundle_avgs, figsize=(40, 20), max_x=None):
     for color_idx, mean in enumerate(bundle_avgs["mean"]):
         mean_regions, mean_idx_regions = region_split(mean, bundle_avgs["_idx"], float("nan"))
         for mean_region, mean_idx_region in zip(mean_regions, mean_idx_regions):
-            ax_main.plot([x-mean_idx_region[0] for x in mean_idx_region], mean_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7)
+            if normalize: 
+                ax_main.plot([(x-mean_idx_region[0]) for x in mean_idx_region], mean_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7)
+            else:
+                ax_main.plot(mean_idx_region, mean_region, color=mean_colors[color_idx % len(mean_colors)], alpha=0.7)
 
     # plot legend
     patches = [mpatches.Patch(color=mean_colors[_i % len(mean_colors)],
