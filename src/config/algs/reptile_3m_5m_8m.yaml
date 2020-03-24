@@ -11,7 +11,7 @@ n_task_rollouts:
   vdn_sc2_8m: 10
 tasks:
   vdn_sc2_3m:
-    label: reptile_3m_5m_8m
+    label: reptile_3m_5m_8m_1
     config: vdn_journal
     env-config: sc2
     t_max: 10050000
@@ -35,7 +35,7 @@ tasks:
     learner_log_interval: 20000
     action_input_representation: Grid
   vdn_sc2_5m:
-    label: reptile_3m_5m_8m
+    label: reptile_3m_5m_8m_2
     config: vdn_journal
     env-config: sc2
     t_max: 10050000
@@ -59,7 +59,7 @@ tasks:
     learner_log_interval: 20000
     action_input_representation: Grid
   vdn_sc2_8m:
-    label: reptile_3m_5m_8m
+    label: reptile_3m_5m_8m_3
     config: vdn_journal
     env-config: sc2
     t_max: 10050000

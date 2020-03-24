@@ -56,4 +56,3 @@ tasks:
     runner_log_interval: 20000
     learner_log_interval: 20000
     action_input_representation: Grid
-
