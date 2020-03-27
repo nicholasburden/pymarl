@@ -32,6 +32,8 @@ tasks:
     runner_log_interval: 20000
     learner_log_interval: 20000
     action_input_representation: Grid
+    checkpoint_path: results/models/reptile_3m_5m__2020-03-24_23-43-09__vdn_sc2_3m
+    load_step: 0
   vdn_sc2_5m:
     label: reptile_3m_5m_2
     config: vdn_journal
@@ -56,3 +58,5 @@ tasks:
     runner_log_interval: 20000
     learner_log_interval: 20000
     action_input_representation: Grid
+    checkpoint_path: results/models/reptile_3m_5m__2020-03-24_23-43-09__vdn_sc2_3m
+    load_step: 0
