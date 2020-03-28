@@ -135,7 +135,7 @@ class SC2(MultiAgentEnv):
         if self.obs_decoder is not None:
             self.obs_id_encoding = "metamix"
             self.rasterise = True
-            self.obs_resolve_multiple_occupancy = True
+            #self.obs_resolve_multiple_occupancy = True
 
         # Finalize action setup
         self.n_actions = self.n_actions_no_attack + self.n_enemies
@@ -238,22 +238,22 @@ class SC2(MultiAgentEnv):
             if self.shield_bits_ally:
                 obs_items["own"].append(("health", self.shield_bits_ally))
 
-        if (self.obs_grid_rasterise and not self.obs_grid_rasterise_debug) \
-                or (self.obs_resolve_multiple_occupancy and not self.obs_resolve_multiple_occupancy_debug):
-            obs_items["ally"].append(("distance_grid", 1,))
-            obs_items["enemy"].append(("distance_grid", 1,))
-            obs_items["ally"].append(("x_grid", 1,))
-            obs_items["enemy"].append(("x_grid", 1,))
-            obs_items["ally"].append(("y_grid", 1,))
-            obs_items["enemy"].append(("y_grid", 1,))
-            obs_items["ally"].append(("distance_sc2_raster", 1,))
-            obs_items["enemy"].append(("distance_sc2_raster", 1,))
-            obs_items["ally"].append(("x_sc2_raster", 1,))
-            obs_items["enemy"].append(("x_sc2_raster", 1,))
-            obs_items["ally"].append(("y_sc2_raster", 1,))
-            obs_items["enemy"].append(("y_sc2_raster", 1,))
-            obs_items["ally"].append(("id", 1,))
-            obs_items["enemy"].append(("id", 1,))
+        #if (self.obs_grid_rasterise and not self.obs_grid_rasterise_debug):# \
+                #or (self.obs_resolve_multiple_occupancy and not self.obs_resolve_multiple_occupancy_debug):
+        obs_items["ally"].append(("distance_grid", 1,))
+        obs_items["enemy"].append(("distance_grid", 1,))
+        obs_items["ally"].append(("x_grid", 1,))
+        obs_items["enemy"].append(("x_grid", 1,))
+        obs_items["ally"].append(("y_grid", 1,))
+        obs_items["enemy"].append(("y_grid", 1,))
+        obs_items["ally"].append(("distance_sc2_raster", 1,))
+        obs_items["enemy"].append(("distance_sc2_raster", 1,))
+        obs_items["ally"].append(("x_sc2_raster", 1,))
+        obs_items["enemy"].append(("x_sc2_raster", 1,))
+        obs_items["ally"].append(("y_sc2_raster", 1,))
+        obs_items["enemy"].append(("y_sc2_raster", 1,))
+        obs_items["ally"].append(("id", 1,))
+        obs_items["enemy"].append(("id", 1,))
 
         self.nf_al = sum([x[1] for x in obs_items["ally"]])
         self.nf_en = sum([x[1] for x in obs_items["enemy"]])
@@ -1080,8 +1080,9 @@ class SC2(MultiAgentEnv):
         if self.obs_decoder is not None and self.obs_decoder.split("_")[0] == "grid":
             self.rasterise_grid(ally_feats,
                                 enemy_feats)
-            self.resolve_multiple_occupancy(ally_feats,
-                                            enemy_feats)
+            if self.obs_resolve_multiple_occupancy:
+                self.resolve_multiple_occupancy(ally_feats,
+                                                enemy_feats)
         else:
             if self.obs_grid_rasterise or self.obs_grid_rasterise_debug:
                 self.rasterise_grid(ally_feats,
@@ -1185,6 +1186,7 @@ class SC2(MultiAgentEnv):
         :param enemy_feats:
         :return:
         """
+        print("XXXXXXXXXXXXX")
         from collections import defaultdict
         pos_hash = defaultdict(lambda: [])
         width, height = obs_grid_shape
