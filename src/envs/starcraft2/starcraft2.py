@@ -1186,7 +1186,6 @@ class SC2(MultiAgentEnv):
         :param enemy_feats:
         :return:
         """
-        print("XXXXXXXXXXXXX")
         from collections import defaultdict
         pos_hash = defaultdict(lambda: [])
         width, height = obs_grid_shape
