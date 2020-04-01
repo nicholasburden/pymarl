@@ -17,7 +17,7 @@ tasks:
     test_greedy: True
     env_args:
       obs_own_health: True # We want this for SMAC(right?)
-      map_name: 3m
+      map_name: 2s3z
       obs_decoder: grid_metamix__2s3z_noid_nolastaction
       obs_grid_shape: 12x12
     agent: rnn_convddpg_input_grid_no_id
