@@ -1,0 +1,61 @@
+meta: reptile
+name: reptile_2s3z_3s5z
+reptile_epsilon: 1.
+n_task_trains:
+  vdn_sc2_2s3z: 5
+  vdn_sc2_3s5z: 5
+n_task_rollouts:
+  vdn_sc2_2s3z: 10
+  vdn_sc2_3s5z: 10
+tasks:
+  vdn_sc2_2s3z:
+    label: reptile_3m_2s3z_1
+    config: vdn_journal
+    env-config: sc2
+    t_max: 10050000
+    test_nepisode: 24
+    test_greedy: True
+    env_args:
+      obs_own_health: True # We want this for SMAC(right?)
+      map_name: 3m
+      obs_decoder: grid_metamix__3m_noid_nolastaction
+      obs_grid_shape: 12x12
+    agent: rnn_convddpg_input_grid_no_id
+    epsilon_start: 1.0
+    epsilon_finish: 0.05
+    epsilon_anneal_time: 50000
+    target_update_interval: 200
+    save_model: True
+    save_model_interval: 200000
+    test_interval: 20000
+    log_interval: 20000
+    runner_log_interval: 20000
+    learner_log_interval: 20000
+    action_input_representation: Grid
+    batch_size: 16
+  vdn_sc2_3s5z:
+    label: reptile_3m_2s3z_2
+    config: vdn_journal
+    env-config: sc2
+    t_max: 10050000
+    test_nepisode: 24
+    test_greedy: True
+    env_args:
+      obs_own_health: True # We want this for SMAC(right?)
+      map_name: 2s3z
+      obs_decoder: grid_metamix__2s3z_noid_nolastaction
+      obs_grid_shape: 12x12
+    agent: rnn_convddpg_input_grid_no_id
+    epsilon_start: 1.0
+    epsilon_finish: 0.05
+    epsilon_anneal_time: 50000
+    target_update_interval: 200
+    save_model: True
+    save_model_interval: 200000
+    test_interval: 20000
+    log_interval: 20000
+    runner_log_interval: 20000
+    learner_log_interval: 20000
+    action_input_representation: Grid
+    batch_size: 16
+
