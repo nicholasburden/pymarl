@@ -18,7 +18,7 @@ tasks:
     env_args:
       obs_own_health: True # We want this for SMAC(right?)
       map_name: 3m
-      obs_decoder: grid_metamix__3m_noid_nolastaction
+      obs_decoder: grid_metamix__2s3z_noid_nolastaction
       obs_grid_shape: 12x12
     agent: rnn_convddpg_input_grid_no_id
     epsilon_start: 1.0
@@ -33,6 +33,7 @@ tasks:
     learner_log_interval: 20000
     action_input_representation: Grid
     batch_size: 16
+    use-cuda: False
   vdn_sc2_3s5z:
     label: reptile_3m_2s3z_2
     config: vdn_journal
@@ -58,4 +59,5 @@ tasks:
     learner_log_interval: 20000
     action_input_representation: Grid
     batch_size: 16
+    use-cuda: False
 
