@@ -32,7 +32,7 @@ env_args:
   debug: False
   obs_decoder: ~
   obs_grid_shape: ~
-
+  sight_range: 9
 
 learner_log_interval: 20000
 log_interval: 20000

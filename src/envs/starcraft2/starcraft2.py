@@ -92,6 +92,7 @@ class SC2(MultiAgentEnv):
             self.obs_own_health = True
         self.n_obs_pathing = 8
         self.n_obs_height = 9
+        self.sight_range=args.sight_range
 
         # Rewards args
         self.reward_sparse = args.reward_sparse
@@ -736,7 +737,7 @@ class SC2(MultiAgentEnv):
         return 6
 
     def unit_sight_range(self, agent_id):
-        return 9
+        return self.sight_range
 
     def unit_max_cooldown(self, agent_id):
 
