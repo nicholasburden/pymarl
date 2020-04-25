@@ -734,7 +734,7 @@ class SC2(MultiAgentEnv):
         return math.hypot(x2 - x1, y2 - y1)
 
     def unit_shoot_range(self, agent_id):
-        return 6
+        return math.min(6, self.sight_range)
 
     def unit_sight_range(self, agent_id):
         return self.sight_range
